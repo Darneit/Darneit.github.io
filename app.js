@@ -238,6 +238,47 @@
     }
   });
 
+  // Keep form inputs constrained to the type of data each field is meant to accept.
+  const serviceChoices = ['Piling & ground works','Foundation works','Masonry works','Structural steel & roofing','Scaffolding','Finishing works','MEP works','Waterproofing & insulation','Road works','Aluminium, glass & metal'];
+
+  document.querySelectorAll('input[name="phone"]').forEach(field => {
+    field.addEventListener('input', () => {
+      field.value = field.value.replace(/\D/g, '').slice(0, 15);
+      field.setCustomValidity('');
+    });
+  });
+
+  document.querySelectorAll('input[name="name"]').forEach(field => {
+    field.addEventListener('input', () => field.setCustomValidity(''));
+  });
+
+  const validatePublicForm = form => {
+    const name = form.querySelector('[name="name"]');
+    const phone = form.querySelector('[name="phone"]');
+    const trade = form.querySelector('[name="trade"]');
+
+    if (name) {
+      const value = name.value.trim();
+      const validName = /^[\p{L}\p{M}][\p{L}\p{M}\s.'’\-]{1,119}$/u.test(value);
+      name.setCustomValidity(validName ? '' : 'Please enter a valid contact name using letters.');
+      if (!validName) return false;
+    }
+
+    if (phone) {
+      const validPhone = /^\d{7,15}$/.test(phone.value);
+      phone.setCustomValidity(validPhone ? '' : 'Enter a phone number using 7 to 15 digits only.');
+      if (!validPhone) return false;
+    }
+
+    if (trade && trade.required && !serviceChoices.includes(trade.value)) {
+      trade.setCustomValidity('Please select one of the services offered by PRTC Group.');
+      if (!trade.value || !serviceChoices.includes(trade.value)) return false;
+    }
+    if (trade) trade.setCustomValidity('');
+
+    return true;
+  };
+
   // Submit public forms to Supabase Edge Functions.
   document.querySelectorAll('[data-site-form]').forEach(form => {
     const file = form.querySelector('input[type="file"]');
@@ -250,7 +291,10 @@
 
     form.addEventListener('submit', async e => {
       e.preventDefault();
-      if (!form.reportValidity() || form.dataset.sent === 'true') return;
+      if (!validatePublicForm(form) || !form.reportValidity() || form.dataset.sent === 'true') {
+        form.reportValidity();
+        return;
+      }
 
       const button = form.querySelector('button[type="submit"]');
       const buttonText = button?.querySelector('span');
@@ -364,7 +408,7 @@
   const tradeIndex = Number(new URLSearchParams(location.search).get('trade'));
   const trades = ['Piling & ground works','Foundation works','Masonry works','Structural steel & roofing','Scaffolding','Finishing works','MEP works','Waterproofing & insulation','Road works','Aluminium, glass & metal'];
   if (tradeIndex>=1 && tradeIndex<=trades.length) {
-    document.querySelectorAll('input[name="trade"]').forEach(field => field.value=trades[tradeIndex-1]);
+    document.querySelectorAll('[name="trade"]').forEach(field => field.value=trades[tradeIndex-1]);
   }
 
   // Optional analytics hooks. If Google Analytics is installed later, these events work automatically.
