@@ -214,49 +214,49 @@
 <span>
            Full name *
           </span>
-<input autocomplete="name" name="name" placeholder="Full name" required="" type="text"/>
+<input autocomplete="name" maxlength="120" name="name" placeholder="Full name" required="" type="text"/>
 </label>
 <label class="form-field">
 <span>
            Phone number *
           </span>
-<input autocomplete="tel" name="phone" placeholder="Phone number" required="" type="tel"/>
+<input autocomplete="tel" inputmode="numeric" maxlength="15" minlength="7" name="phone" pattern="[0-9]{7,15}" placeholder="Phone number (numbers only)" required="" type="tel"/>
 </label>
 <label class="form-field">
 <span>
            Email address *
           </span>
-<input autocomplete="email" name="email" placeholder="Email address" required="" type="email"/>
+<input autocomplete="email" maxlength="180" name="email" placeholder="Email address" required="" type="email"/>
 </label>
 <label class="form-field">
 <span>
            Nationality
           </span>
-<input autocomplete="country-name" name="nationality" placeholder="Nationality" type="text"/>
+<input autocomplete="country-name" maxlength="120" name="nationality" placeholder="Nationality" type="text"/>
 </label>
 <label class="form-field">
 <span>
            Current location
           </span>
-<input name="location" placeholder="Current location" type="text"/>
+<input maxlength="160" name="location" placeholder="Current location" type="text"/>
 </label>
 <label class="form-field">
 <span>
            Applying for / trade *
           </span>
-<input name="trade" placeholder="Applying for / trade" required="" type="text"/>
+<input maxlength="180" name="trade" placeholder="Applying for / trade" required="" type="text"/>
 </label>
 <label class="form-field">
 <span>
            Years of experience
           </span>
-<input min="0" name="experience" placeholder="Years of experience" type="number"/>
+<input inputmode="numeric" max="80" min="0" name="experience" placeholder="Years of experience" step="1" type="number"/>
 </label>
 <label class="form-field">
 <span>
            Current employment status
           </span>
-<input name="employment_status" placeholder="Current employment status" type="text"/>
+<input maxlength="160" name="employment_status" placeholder="Current employment status" type="text"/>
 </label>
 <label class="form-field form-file">
 <span>
@@ -277,7 +277,7 @@
 <span>
            Additional information
           </span>
-<textarea name="message" placeholder="Tell us anything else we should know" rows="5"></textarea>
+<textarea maxlength="4000" name="message" placeholder="Tell us anything else we should know" rows="5"></textarea>
 </label>
 </div>
 <div class="form-submit-row">
