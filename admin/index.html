@@ -135,6 +135,9 @@
   var API_KEY = 'sb_publishable_goNXOTguYIcivBwulGSf_g_KhY2iRYK';
   var session = null;
   var clients = [];
+  var enquiriesCache = null;
+  var applicationsCache = null;
+  var clientsCache = null;
 
   function $(selector) { return document.querySelector(selector); }
   function all(selector) { return Array.prototype.slice.call(document.querySelectorAll(selector)); }
@@ -282,6 +285,7 @@
 
       return verifyAdmin(data).then(function () {
         loadDashboard();
+        prefetchAdminData();
       });
     })
     .catch(function (err) {
@@ -323,9 +327,9 @@
       $('#viewTitle').textContent = titles[view];
       $('#sidebar').classList.remove('is-open');
       if (view === 'dashboard') loadDashboard();
-      if (view === 'enquiries') loadEnquiries();
-      if (view === 'applications') loadApplications();
-      if (view === 'clients') loadClients();
+      if (view === 'enquiries') { enquiriesCache = null; loadEnquiries(); }
+      if (view === 'applications') { applicationsCache = null; loadApplications(); }
+      if (view === 'clients') { clientsCache = null; loadClients(); }
     });
   });
   $('#mobileNavBtn').addEventListener('click', function () { $('#sidebar').classList.toggle('is-open'); });
@@ -351,31 +355,34 @@
 
   function loadDashboard() {
     $('#recentActivity').innerHTML = '<div class="empty">Loading…</div>';
-    return Promise.all([
-      fetchCount('enquiries','New'),
-      fetchCount('enquiries'),
-      fetchCount('applications','New'),
-      fetchCount('applications'),
-      api('/rest/v1/clients?select=id&enabled=eq.true',{method:'HEAD',headers:{'Prefer':'count=exact'}}).then(function (res) {
-        if (!res.ok) throw new Error('Could not load client count.');
-        return Number((res.headers.get('content-range') || '0/0').split('/')[1]) || 0;
-      })
-    ]).then(function (counts) {
-      var labels = ['New enquiries','Total enquiries','New applications','Total applications','Active clients'];
-      $('#dashboardStats').innerHTML = labels.map(function (label, i) {
-        return '<div class="stat-card"><span>' + esc(label) + '</span><strong>' + counts[i] + '</strong></div>';
+
+    return api('/rest/v1/rpc/get_admin_dashboard', {
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:'{}'
+    }).then(function (res) {
+      if (!res.ok) {
+        return readError(res, 'Could not load dashboard.').then(function (err) { throw err; });
+      }
+      return res.json();
+    }).then(function (data) {
+      var counts = data.counts || {};
+      var cards = [
+        ['New enquiries', counts.new_enquiries || 0],
+        ['Total enquiries', counts.total_enquiries || 0],
+        ['New applications', counts.new_applications || 0],
+        ['Total applications', counts.total_applications || 0],
+        ['Active clients', counts.active_clients || 0]
+      ];
+      $('#dashboardStats').innerHTML = cards.map(function (x) {
+        return '<div class="stat-card"><span>' + esc(x[0]) + '</span><strong>' + x[1] + '</strong></div>';
       }).join('');
 
-      return Promise.all([
-        rest('enquiries','select=id,name,company,status,created_at&order=created_at.desc&limit=5',{method:'GET'}),
-        rest('applications','select=id,name,trade,status,created_at&order=created_at.desc&limit=5',{method:'GET'})
-      ]);
-    }).then(function (sets) {
       var items = [];
-      (sets[0] || []).forEach(function (x) {
+      (data.recent_enquiries || []).forEach(function (x) {
         items.push({name:x.name,type:'Enquiry',label:x.company || x.name,status:x.status,created_at:x.created_at});
       });
-      (sets[1] || []).forEach(function (x) {
+      (data.recent_applications || []).forEach(function (x) {
         items.push({name:x.name,type:'Application',label:x.trade || x.name,status:x.status,created_at:x.created_at});
       });
       items.sort(function (a,b) { return new Date(b.created_at) - new Date(a.created_at); });
@@ -389,10 +396,22 @@
     });
   }
 
+  function prefetchAdminData() {
+    Promise.all([
+      rest('enquiries','select=*&order=created_at.desc',{method:'GET'}).then(function (data) { enquiriesCache = data || []; }),
+      rest('applications','select=*&order=created_at.desc',{method:'GET'}).then(function (data) { applicationsCache = data || []; }),
+      rest('clients','select=*&order=display_order.asc,name.asc',{method:'GET'}).then(function (data) {
+        clientsCache = data || [];
+        clients = clientsCache;
+      })
+    ]).catch(function () {});
+  }
   function loadEnquiries() {
     $('#enquiryRows').innerHTML = '<tr><td colspan="7">Loading…</td></tr>';
-    rest('enquiries','select=*&order=created_at.desc',{method:'GET'}).then(function (data) {
+    var source = enquiriesCache ? Promise.resolve(enquiriesCache) : rest('enquiries','select=*&order=created_at.desc',{method:'GET'});
+    source.then(function (data) {
       data = data || [];
+      enquiriesCache = data;
       $('#enquiryRows').innerHTML = data.length ? data.map(function (x) {
         var opts = ['New','Contacted','Closed'].map(function (st) {
           return '<option' + (x.status === st ? ' selected' : '') + '>' + st + '</option>';
@@ -417,8 +436,10 @@
 
   function loadApplications() {
     $('#applicationRows').innerHTML = '<tr><td colspan="7">Loading…</td></tr>';
-    rest('applications','select=*&order=created_at.desc',{method:'GET'}).then(function (data) {
+    var source = applicationsCache ? Promise.resolve(applicationsCache) : rest('applications','select=*&order=created_at.desc',{method:'GET'});
+    source.then(function (data) {
       data = data || [];
+      applicationsCache = data;
       $('#applicationRows').innerHTML = data.length ? data.map(function (x) {
         var opts = ['New','Reviewed','Shortlisted','Rejected'].map(function (st) {
           return '<option' + (x.status === st ? ' selected' : '') + '>' + st + '</option>';
@@ -449,7 +470,10 @@
   }
 
   function updateStatus(table,id,status) {
-    rest(table,'id=eq.' + encodeURIComponent(id),{method:'PATCH',body:JSON.stringify({status:status})}).catch(function (err) {
+    rest(table,'id=eq.' + encodeURIComponent(id),{method:'PATCH',body:JSON.stringify({status:status})}).then(function () {
+      if (table === 'enquiries') enquiriesCache = null;
+      if (table === 'applications') applicationsCache = null;
+    }).catch(function (err) {
       alert(err.message);
     });
   }
@@ -523,8 +547,10 @@
 
   function loadClients() {
     $('#clientRows').innerHTML = '<div class="empty">Loading…</div>';
-    rest('clients','select=*&order=display_order.asc,name.asc',{method:'GET'}).then(function (data) {
+    var source = clientsCache ? Promise.resolve(clientsCache) : rest('clients','select=*&order=display_order.asc,name.asc',{method:'GET'});
+    source.then(function (data) {
       clients = data || [];
+      clientsCache = clients;
       $('#clientRows').innerHTML = clients.length ? clients.map(function (x) {
         return '<div class="client-item"><img src="' + esc(x.logo_path) + '" alt=""><div class="client-meta"><strong>' + esc(x.name) + '</strong><span>Order ' + x.display_order + ' · ' + (x.enabled ? 'Enabled' : 'Hidden') + '</span></div><div class="client-actions"><button class="secondary" type="button" data-edit-client="' + x.id + '">Edit</button><button class="link-btn danger" type="button" data-delete-client="' + x.id + '">Delete</button></div></div>';
       }).join('') : '<div class="empty">No clients.</div>';
@@ -602,6 +628,7 @@
       return p.then(function () {
         status.textContent = 'Saved.';
         resetClientForm();
+        clientsCache = null;
         loadClients();
       });
     }
@@ -633,7 +660,10 @@
   function deleteClient(id) {
     var item = clients.filter(function (x) { return x.id === id; })[0];
     if (!item || !confirm('Delete ' + item.name + '?')) return;
-    rest('clients','id=eq.' + encodeURIComponent(id),{method:'DELETE'}).then(loadClients).catch(function (err) {
+    rest('clients','id=eq.' + encodeURIComponent(id),{method:'DELETE'}).then(function () {
+      clientsCache = null;
+      loadClients();
+    }).catch(function (err) {
       alert(err.message);
     });
   }
@@ -643,11 +673,17 @@
     // Returning admins see the dashboard instantly, then the stored session is checked.
     showShell(session);
     $('#recentActivity').innerHTML = '<div class="empty">Checking session…</div>';
-    verifyAdmin(session).then(loadDashboard).catch(function () {
+    verifyAdmin(session).then(function () {
+      loadDashboard();
+      prefetchAdminData();
+    }).catch(function () {
       return refreshSession().then(function (ok) {
         if (!ok) throw new Error('Your session has expired. Please sign in again.');
         showShell(session);
-        return verifyAdmin(session).then(loadDashboard);
+        return verifyAdmin(session).then(function () {
+          loadDashboard();
+          prefetchAdminData();
+        });
       });
     }).catch(function (err) {
       saveSession(null);
