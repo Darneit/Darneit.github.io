@@ -456,13 +456,46 @@
 
   function showDetail(item,type) {
     if (!item) return;
-    var skip = {id:true,cv_path:true,cv_mime_type:true,cv_size_bytes:true};
-    var rows = Object.keys(item).filter(function (k) { return !skip[k]; }).map(function (k) {
-      var value = item[k];
-      if (k.indexOf('created_at') >= 0 || k.indexOf('updated_at') >= 0) value = fmt(value);
-      return '<dt>' + esc(k.replace(/_/g,' ')) + '</dt><dd>' + esc(value == null || value === '' ? '—' : value) + '</dd>';
+
+    var labels = {
+      name:'Name',
+      company:'Company',
+      email:'Email',
+      phone:'Phone / WhatsApp',
+      project_location:'Project Location',
+      trade:'Required Trade / Service',
+      workers:'Workers Required',
+      message:'Additional Information',
+      status:'Status',
+      created_at:'Submitted',
+      updated_at:'Last Updated',
+      nationality:'Nationality',
+      location:'Current Location',
+      experience:'Years of Experience',
+      employment_status:'Employment Status',
+      cv_original_name:'CV / Résumé'
+    };
+
+    var order = type === 'Enquiry'
+      ? ['name','company','email','phone','project_location','trade','workers','message','status','created_at','updated_at']
+      : ['name','email','phone','nationality','location','trade','experience','employment_status','message','status','cv_original_name','created_at','updated_at'];
+
+    var rows = order.filter(function (key) {
+      return Object.prototype.hasOwnProperty.call(item,key);
+    }).map(function (key) {
+      var value = item[key];
+      if (key === 'created_at' || key === 'updated_at') value = fmt(value);
+      if (value == null || value === '') value = '—';
+
+      var valueClass = key === 'status' ? ' detail-status' : '';
+      return '<div class="detail-row"><dt>' + esc(labels[key] || key) + '</dt><dd class="' + valueClass.trim() + '">' + esc(value) + '</dd></div>';
     }).join('');
-    $('#dialogContent').innerHTML = '<p class="kicker">' + esc(type) + '</p><h2>' + esc(item.name) + '</h2><dl class="detail-grid">' + rows + '</dl>';
+
+    $('#dialogContent').innerHTML =
+      '<div class="detail-head"><div><p class="kicker">' + esc(type) + '</p><h2>' + esc(item.name) + '</h2></div>' +
+      (item.status ? '<span class="detail-status-badge">' + esc(item.status) + '</span>' : '') +
+      '</div><dl class="detail-grid">' + rows + '</dl>';
+
     $('#detailDialog').showModal();
   }
   $('#dialogClose').addEventListener('click', function () { $('#detailDialog').close(); });
