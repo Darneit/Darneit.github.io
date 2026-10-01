@@ -184,6 +184,9 @@
 </div>
 <div class="form-shell">
 <form class="site-form" data-site-form="" enctype="multipart/form-data" method="POST">
+
+
+<input data-next-url="" name="_next" type="hidden" value=""/>
 <input aria-hidden="true" autocomplete="off" class="honey" name="_honey" tabindex="-1" type="text"/>
 <div class="form-grid">
 <label class="form-field">
@@ -218,7 +221,7 @@
 </label>
 <label class="form-field">
 <span>
-           Required trade / service
+           Required trade / service *
           </span>
 <select name="trade" required=""><option value="" selected disabled>Select a service</option>
 <option value="Piling &amp; ground works">Piling &amp; ground works</option>
@@ -232,6 +235,18 @@
 <option value="Road works">Road works</option>
 <option value="Aluminium, glass &amp; metal">Aluminium, glass &amp; metal</option></select>
 </label>
+<label class="form-field">
+<span>
+           Number of workers
+          </span>
+<input inputmode="numeric" max="100000" min="1" name="workers" placeholder="Number of workers" step="1" type="number"/>
+</label>
+<label class="form-field">
+<span>
+           Contract duration
+          </span>
+<input maxlength="160" name="duration" placeholder="Contract duration (e.g. 6 months)" type="text"/>
+</label>
 <label class="form-field form-field-wide">
 <span>
            Additional information
@@ -242,7 +257,7 @@
 <div class="form-submit-row">
 <button class="btn btn-primary" type="submit">
 <span>
-           Send Message
+           Send Enquiry
           </span>
 <svg aria-hidden="true" class="icon" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.7" viewbox="0 0 24 24">
 <path d="M5 12h14M13 6l6 6-6 6">
@@ -312,6 +327,9 @@
      </a>
 <a href="/manpower-services/">
       Manpower Services
+     </a>
+<a href="/projects/">
+      Projects
      </a>
 <a href="/careers/">
       Careers
