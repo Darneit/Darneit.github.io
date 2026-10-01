@@ -8,11 +8,8 @@
   // Replace the old generated/placeholder photography with curated real Unsplash photography.
   // All selected photos are free to use under the Unsplash License.
   const realPhotoBase = {
-    // Only replace the images that looked the most artificial.
-    // The rest of the site's original photography is intentionally kept for variety.
-    workers: 'https://images.unsplash.com/photo-1768926968986-a88590ce5025',
-    worksite: 'https://images.unsplash.com/photo-1762356731517-c2e7d273fd9c',
-    skyline: 'https://images.unsplash.com/photo-1745750434535-5943ef2fd31a',
+    // Keep most original photography. Only a couple of obviously artificial-looking
+    // specialist images are swapped at runtime.
     glass: 'https://images.unsplash.com/photo-1745750434535-5943ef2fd31a',
     scaffold: 'https://images.unsplash.com/photo-1722230428078-591f520674b0'
   };
