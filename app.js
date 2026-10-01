@@ -315,8 +315,9 @@
       status.classList.remove('is-error');
 
       try {
-        const isApplication = Boolean(file);
-        const isContact = !isApplication && location.pathname.replace(/\/+$/,'').endsWith('/contact');
+        const formType = form.dataset.formType || (file ? 'application' : (form.querySelector('[name="company"],[name="trade"]') ? 'enquiry' : 'contact'));
+        const isApplication = formType === 'application';
+        const isContact = formType === 'contact';
         if (isApplication) {
           const data = new FormData(form);
           const cv = file?.files?.[0];
