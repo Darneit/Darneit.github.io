@@ -224,9 +224,12 @@
 
       try {
         const isApplication = Boolean(file);
+        const isContact = !isApplication && location.pathname.replace(/\/+$/,'').endsWith('/contact');
         const endpoint = isApplication
           ? 'https://hjbzkhcoltoxzvabprdj.supabase.co/functions/v1/submit-application'
-          : 'https://hjbzkhcoltoxzvabprdj.supabase.co/functions/v1/submit-enquiry';
+          : isContact
+            ? 'https://hjbzkhcoltoxzvabprdj.supabase.co/functions/v1/submit-contact'
+            : 'https://hjbzkhcoltoxzvabprdj.supabase.co/functions/v1/submit-enquiry';
 
         let body;
         let headers = {};
