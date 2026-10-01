@@ -5,6 +5,45 @@
   const toggle = document.querySelector('.menu-toggle');
   const nav = document.querySelector('.nav');
 
+  // Replace the old generated/placeholder photography with curated real Unsplash photography.
+  // All selected photos are free to use under the Unsplash License.
+  const realPhotoBase = {
+    workers: 'https://images.unsplash.com/photo-1768926968986-a88590ce5025',
+    worksite: 'https://images.unsplash.com/photo-1762356731517-c2e7d273fd9c',
+    site: 'https://images.unsplash.com/photo-1762356731517-c2e7d273fd9c',
+    construction: 'https://images.unsplash.com/photo-1768926968986-a88590ce5025',
+    handshake: 'https://images.unsplash.com/photo-1768926968986-a88590ce5025',
+    foundation: 'https://images.unsplash.com/photo-1768677903496-becc4be07258',
+    piling: 'https://images.unsplash.com/photo-1768677903496-becc4be07258',
+    masonry: 'https://images.unsplash.com/photo-1768677903496-becc4be07258',
+    scaffold: 'https://images.unsplash.com/photo-1762356731517-c2e7d273fd9c',
+    steel: 'https://images.unsplash.com/photo-1683830932134-2d06849534eb',
+    mep: 'https://images.unsplash.com/photo-1683830932134-2d06849534eb',
+    finishing: 'https://images.unsplash.com/photo-1768926968986-a88590ce5025',
+    waterproofing: 'https://images.unsplash.com/photo-1768677903496-becc4be07258',
+    roadworks: 'https://images.unsplash.com/photo-1762356731517-c2e7d273fd9c',
+    glass: 'https://images.unsplash.com/photo-1745750434535-5943ef2fd31a',
+    skyline: 'https://images.unsplash.com/photo-1745750434535-5943ef2fd31a'
+  };
+  const realPhotoUrl = key => realPhotoBase[key] + '?auto=format&fit=crop&w=2400&q=88';
+
+  const photoKeyFromPath = value => {
+    const match = String(value || '').match(/\/assets\/([a-z-]+?)(?:-(?:640|1024|1600))?\.(?:png|jpe?g|webp)(?:[?#].*)?$/i);
+    return match ? match[1].toLowerCase() : '';
+  };
+
+  document.querySelectorAll('img[src^="/assets/"]').forEach(img => {
+    const key = photoKeyFromPath(img.getAttribute('src'));
+    if (!realPhotoBase[key]) return;
+    img.removeAttribute('srcset');
+    img.src = realPhotoUrl(key);
+  });
+
+  document.querySelectorAll('link[rel="preload"][as="image"][href^="/assets/"]').forEach(link => {
+    const key = photoKeyFromPath(link.getAttribute('href'));
+    if (realPhotoBase[key]) link.href = realPhotoUrl(key);
+  });
+
   const setHeader = () => header?.classList.toggle('is-scrolled', scrollY > 16);
   setHeader();
   addEventListener('scroll', setHeader, { passive: true });
