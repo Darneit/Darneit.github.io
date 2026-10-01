@@ -171,7 +171,7 @@
     </section>
     <section class="admin-view" data-panel="trash">
       <div class="panel">
-        <div class="panel-head"><div><p class="kicker">Recoverable items</p><h2>Trash</h2></div><button class="secondary" type="button" data-refresh="trash">Refresh</button></div>
+        <div class="panel-head"><div><p class="kicker">Recoverable items</p><h2>Trash</h2></div><div class="panel-actions"><button class="secondary" type="button" id="exportTrashPdf">Download All PDF</button><button class="secondary" type="button" id="exportTrashCsv">Download CSV</button><button class="secondary" type="button" data-refresh="trash">Refresh</button></div></div>
         <p class="muted small">Items moved here can be restored. Permanent deletion removes the database record; for applications it also removes the stored CV.</p>
         <div class="table-wrap"><table><thead><tr><th>Deleted</th><th>Type</th><th>Name</th><th>Details</th><th></th></tr></thead><tbody id="trashRows"><tr><td colspan="5">Open this section to load trash.</td></tr></tbody></table></div>
       </div>
@@ -179,7 +179,7 @@
 
     <section class="admin-view" data-panel="audit">
       <div class="panel">
-        <div class="panel-head"><div><p class="kicker">Administration</p><h2>Audit Log</h2></div><button class="secondary" type="button" data-refresh="audit">Refresh</button></div>
+        <div class="panel-head"><div><p class="kicker">Administration</p><h2>Audit Log</h2></div><div class="panel-actions"><button class="secondary" type="button" id="exportAuditPdf">Download All PDF</button><button class="secondary" type="button" id="exportAuditCsv">Download CSV</button><button class="secondary" type="button" data-refresh="audit">Refresh</button></div></div>
         <div class="table-wrap"><table><thead><tr><th>Date</th><th>Action</th><th>Area</th><th>Record</th><th>Details</th></tr></thead><tbody id="auditRows"><tr><td colspan="5">Open this section to load audit activity.</td></tr></tbody></table></div>
       </div>
     </section>
@@ -1016,8 +1016,18 @@
       $('#trashRows').innerHTML = rows.length ? rows.map(function (r) {
         var x = r.item;
         var detail = r.type === 'Application' ? x.trade : (x.company || x.trade || x.email || '—');
-        return '<tr><td>' + fmt(x.deleted_at) + '</td><td>' + esc(r.type) + '</td><td><strong>' + esc(x.name) + '</strong></td><td>' + esc(detail) + '</td><td><div class="row-actions"><button class="link-btn" type="button" data-trash-restore="' + r.table + '|' + x.id + '">Restore</button><button class="link-btn danger" type="button" data-trash-delete="' + r.table + '|' + x.id + '">Delete permanently</button></div></td></tr>';
+        return '<tr><td>' + fmt(x.deleted_at) + '</td><td>' + esc(r.type) + '</td><td><strong>' + esc(x.name) + '</strong></td><td>' + esc(detail) + '</td><td><div class="row-actions"><button class="link-btn" type="button" data-trash-pdf="' + r.table + '|' + x.id + '">PDF</button><button class="link-btn" type="button" data-trash-restore="' + r.table + '|' + x.id + '">Restore</button><button class="link-btn danger" type="button" data-trash-delete="' + r.table + '|' + x.id + '">Delete permanently</button></div></td></tr>';
       }).join('') : '<tr><td colspan="5">Trash is empty.</td></tr>';
+
+      all('[data-trash-pdf]').forEach(function (btn) {
+        btn.addEventListener('click', function () {
+          var parts = btn.getAttribute('data-trash-pdf').split('|');
+          var entry = (trashCache || []).find(function (r) { return r.table === parts[0] && r.item.id === parts[1]; });
+          if (!entry) return;
+          var sections = entry.type === 'Enquiry' ? enquirySections([entry.item]) : entry.type === 'Application' ? applicationSections([entry.item]) : contactSections([entry.item]);
+          downloadTextPdf('PRTC-Trash-' + entry.type.replace(/\s+/g,'-') + '-' + (entry.item.name || 'Record').replace(/[^a-z0-9]+/gi,'-') + '.pdf','PRTC Group - ' + entry.type,sections);
+        });
+      });
 
       all('[data-trash-restore]').forEach(function (btn) {
         btn.addEventListener('click', function () {
@@ -1401,6 +1411,43 @@
     var rows = getFilteredClients(clientsCache || clients || []);
     downloadCsv('PRTC-Clients.csv',['Name','Display Order','Status','Logo'],rows.map(function (x) {
       return [x.name,x.display_order,x.enabled ? 'Enabled' : 'Hidden',x.logo_path];
+    }));
+  });
+
+  $('#exportTrashPdf').addEventListener('click', function () {
+    var sections = (trashCache || []).map(function (entry,i) {
+      return {heading:(i+1) + '. ' + entry.type + ' - ' + (entry.item.name || 'Record'),lines:[
+        'Deleted: ' + fmt(entry.item.deleted_at),
+        'Email: ' + (entry.item.email || '-'),
+        'Phone: ' + (entry.item.phone || '-'),
+        'Company / Trade: ' + (entry.item.company || entry.item.trade || '-'),
+        'Status: ' + (entry.item.status || '-')
+      ]};
+    });
+    downloadTextPdf('PRTC-Trash.pdf','PRTC Group - Trash (' + sections.length + ')',sections);
+  });
+
+  $('#exportTrashCsv').addEventListener('click', function () {
+    downloadCsv('PRTC-Trash.csv',['Deleted','Type','Name','Email','Phone','Company / Trade','Status'],(trashCache || []).map(function (entry) {
+      return [fmt(entry.item.deleted_at),entry.type,entry.item.name,entry.item.email,entry.item.phone,entry.item.company || entry.item.trade,entry.item.status];
+    }));
+  });
+
+  $('#exportAuditPdf').addEventListener('click', function () {
+    var sections = (auditCache || []).map(function (x,i) {
+      return {heading:(i+1) + '. ' + String(x.action || '').replace(/_/g,' '),lines:[
+        'Date: ' + fmt(x.created_at),
+        'Area: ' + (x.entity_type || '-'),
+        'Record: ' + (x.entity_id || '-'),
+        'Details: ' + (x.details ? JSON.stringify(x.details) : '-')
+      ]};
+    });
+    downloadTextPdf('PRTC-Audit-Log.pdf','PRTC Group - Audit Log (' + sections.length + ')',sections);
+  });
+
+  $('#exportAuditCsv').addEventListener('click', function () {
+    downloadCsv('PRTC-Audit-Log.csv',['Date','Action','Area','Record','Details'],(auditCache || []).map(function (x) {
+      return [fmt(x.created_at),String(x.action || '').replace(/_/g,' '),x.entity_type,x.entity_id,x.details ? JSON.stringify(x.details) : ''];
     }));
   });
 
