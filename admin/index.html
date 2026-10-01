@@ -1016,7 +1016,7 @@
       $('#trashRows').innerHTML = rows.length ? rows.map(function (r) {
         var x = r.item;
         var detail = r.type === 'Application' ? x.trade : (x.company || x.trade || x.email || '—');
-        return '<tr><td>' + fmt(x.deleted_at) + '</td><td>' + esc(r.type) + '</td><td><strong>' + esc(x.name) + '</strong></td><td>' + esc(detail) + '</td><td><div class="row-actions"><button class="link-btn" type="button" data-trash-pdf="' + r.table + '|' + x.id + '">PDF</button><button class="link-btn" type="button" data-trash-restore="' + r.table + '|' + x.id + '">Restore</button><button class="link-btn danger" type="button" data-trash-delete="' + r.table + '|' + x.id + '">Delete permanently</button></div></td></tr>';
+        return '<tr data-trash-row="' + r.table + '|' + x.id + '"><td>' + fmt(x.deleted_at) + '</td><td>' + esc(r.type) + '</td><td><strong>' + esc(x.name) + '</strong></td><td>' + esc(detail) + '</td><td><div class="row-actions"><button class="link-btn" type="button" data-trash-pdf="' + r.table + '|' + x.id + '">PDF</button><button class="link-btn" type="button" data-trash-restore="' + r.table + '|' + x.id + '">Restore</button><button class="link-btn danger" type="button" data-trash-delete="' + r.table + '|' + x.id + '">Delete permanently</button></div></td></tr>';
       }).join('') : '<tr><td colspan="5">Trash is empty.</td></tr>';
 
       all('[data-trash-pdf]').forEach(function (btn) {
@@ -1032,12 +1032,15 @@
       all('[data-trash-restore]').forEach(function (btn) {
         btn.addEventListener('click', function () {
           var parts = btn.getAttribute('data-trash-restore').split('|');
+          btn.disabled = true;
           rest(parts[0],'id=eq.' + encodeURIComponent(parts[1]),{method:'PATCH',body:JSON.stringify({deleted_at:null})}).then(function () {
-            trashCache = null;
+            trashCache = (trashCache || []).filter(function (r) { return !(r.table === parts[0] && r.item.id === parts[1]); });
             invalidateTableCache(parts[0]);
-            loadTrash();
+            var row = btn.closest('tr');
+            if (row) row.remove();
+            if (!trashCache.length) $('#trashRows').innerHTML = '<tr><td colspan="5">Trash is empty.</td></tr>';
             loadDashboard(true);
-          }).catch(function (err) { alert(err.message); });
+          }).catch(function (err) { btn.disabled = false; alert(err.message); });
         });
       });
 
@@ -1053,14 +1056,17 @@
             cvDelete = api('/storage/v1/object/cv-private/' + path,{method:'DELETE'}).then(function () {}).catch(function () {});
           }
 
+          btn.disabled = true;
           Promise.all([
             rest(parts[0],'id=eq.' + encodeURIComponent(parts[1]),{method:'DELETE'}),
             cvDelete
           ]).then(function () {
-            trashCache = null;
-            loadTrash();
+            trashCache = (trashCache || []).filter(function (r) { return !(r.table === parts[0] && r.item.id === parts[1]); });
+            var row = btn.closest('tr');
+            if (row) row.remove();
+            if (!trashCache.length) $('#trashRows').innerHTML = '<tr><td colspan="5">Trash is empty.</td></tr>';
             loadDashboard(true);
-          }).catch(function (err) { alert(err.message); });
+          }).catch(function (err) { btn.disabled = false; alert(err.message); });
         });
       });
     }).catch(function (err) {
