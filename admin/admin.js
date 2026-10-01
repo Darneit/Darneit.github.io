@@ -281,6 +281,7 @@ async function deleteClient(id){
   } catch(e) { alert(e.message); }
 }
 
+loginStatus.textContent = 'Ready to sign in.';
 session = loadStoredSession();
 showSession();
 })();
