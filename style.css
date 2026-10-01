@@ -2816,3 +2816,52 @@ footer .footer-locations{
   background:
     linear-gradient(to bottom,#041a30 0,#041a30 118px,var(--mist) 118px,var(--mist) 100%);
 }
+
+
+/* Utility pages: clean white header, no empty navy strip */
+.page-thank-you .site-header,
+.page-404 .site-header,
+.page-thank-you .site-header:not(.is-scrolled):not(:has(.nav.open)),
+.page-404 .site-header:not(.is-scrolled):not(:has(.nav.open)){
+  background:rgba(255,255,255,.98) !important;
+  color:#071b2d !important;
+  box-shadow:0 8px 30px rgba(4,26,48,.07) !important;
+  border-bottom:1px solid rgba(4,26,48,.08) !important;
+  backdrop-filter:blur(18px) !important;
+  -webkit-backdrop-filter:blur(18px) !important;
+}
+.page-thank-you .site-header::after,
+.page-404 .site-header::after,
+.page-thank-you .site-header:not(.is-scrolled):not(:has(.nav.open))::after,
+.page-404 .site-header:not(.is-scrolled):not(:has(.nav.open))::after{
+  background:rgba(4,26,48,.08) !important;
+}
+.page-thank-you .site-header .brand-header .brand-logo-dark,
+.page-404 .site-header .brand-header .brand-logo-dark,
+.page-thank-you .site-header:not(.is-scrolled):not(:has(.nav.open)) .brand-header .brand-logo-dark,
+.page-404 .site-header:not(.is-scrolled):not(:has(.nav.open)) .brand-header .brand-logo-dark{
+  opacity:0 !important;
+  z-index:1 !important;
+}
+.page-thank-you .site-header .brand-header .brand-logo-light,
+.page-404 .site-header .brand-header .brand-logo-light,
+.page-thank-you .site-header:not(.is-scrolled):not(:has(.nav.open)) .brand-header .brand-logo-light,
+.page-404 .site-header:not(.is-scrolled):not(:has(.nav.open)) .brand-header .brand-logo-light{
+  opacity:1 !important;
+  z-index:2 !important;
+}
+.page-thank-you .site-header .nav a,
+.page-404 .site-header .nav a,
+.page-thank-you .site-header:not(.is-scrolled):not(:has(.nav.open)) .nav a,
+.page-404 .site-header:not(.is-scrolled):not(:has(.nav.open)) .nav a{
+  color:#071b2d !important;
+  text-shadow:none !important;
+}
+.page-thank-you .site-header .menu-toggle i,
+.page-404 .site-header .menu-toggle i{
+  background:#071b2d !important;
+}
+.page-thank-you .thanks-page,
+.page-404 .thanks-page{
+  background:var(--mist) !important;
+}
