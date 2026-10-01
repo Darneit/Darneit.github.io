@@ -190,6 +190,25 @@
     measure();
   });
 
+
+  // Keep all public contact-number groups consistent across the site.
+  document.querySelectorAll('a[href="tel:+971553252162"]').forEach(existing => {
+    const parent = existing.parentElement;
+    if (!parent || parent.querySelector('a[href="tel:+971555575615"]')) return;
+
+    const next = document.createElement('a');
+    next.href = 'tel:+971555575615';
+    next.textContent = '+971 55 557 5615';
+
+    // Contact-detail blocks use explicit line breaks; footers use stacked links via CSS.
+    if (parent.querySelector('br')) {
+      existing.insertAdjacentElement('afterend', document.createElement('br'));
+      existing.nextElementSibling?.insertAdjacentElement('afterend', next);
+    } else {
+      existing.insertAdjacentElement('afterend', next);
+    }
+  });
+
   // Submit public forms to Supabase Edge Functions.
   document.querySelectorAll('[data-site-form]').forEach(form => {
     const file = form.querySelector('input[type="file"]');
