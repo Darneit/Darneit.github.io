@@ -84,14 +84,16 @@
     const target = Number(el.dataset.count || 0);
     const suffix = el.dataset.suffix || '';
     const duration = target > 1500 ? 1050 : 950;
-    if (reduce.matches) { el.textContent = target.toLocaleString('en-US') + suffix; return; }
+    const isYear = target >= 1900 && target <= 2100 && !suffix;
+    const formatValue = value => isYear ? String(value) : value.toLocaleString('en-US');
+    if (reduce.matches) { el.textContent = formatValue(target) + suffix; return; }
     el.textContent = '0' + suffix;
     const start = performance.now();
     const frame = now => {
       const p = Math.min(1,(now-start)/duration);
       const eased = 1 - Math.pow(1-p,3);
       const value = Math.round(target*eased);
-      el.textContent = value.toLocaleString('en-US') + suffix;
+      el.textContent = formatValue(value) + suffix;
       if (p < 1) requestAnimationFrame(frame);
     };
     requestAnimationFrame(frame);
