@@ -28,10 +28,12 @@
     <a href="/" class="admin-brand sidebar-brand"><img src="/assets/prtc-header-dark.png" alt="PRTC Group"></a>
     <nav>
       <button class="nav-btn is-active" type="button" data-view="dashboard">Dashboard</button>
-      <button class="nav-btn" type="button" data-view="enquiries">Enquiries</button>
-      <button class="nav-btn" type="button" data-view="applications">Applications</button>
-      <button class="nav-btn" type="button" data-view="contacts">Contact Messages</button>
+      <button class="nav-btn" type="button" data-view="enquiries"><span>Enquiries</span><span class="nav-badge" id="enquiryBadge" hidden>0</span></button>
+      <button class="nav-btn" type="button" data-view="applications"><span>Applications</span><span class="nav-badge" id="applicationBadge" hidden>0</span></button>
+      <button class="nav-btn" type="button" data-view="contacts"><span>Contact Messages</span><span class="nav-badge" id="contactBadge" hidden>0</span></button>
       <button class="nav-btn" type="button" data-view="clients">Clients</button>
+      <button class="nav-btn" type="button" data-view="trash"><span>Trash</span><span class="nav-badge subtle" id="trashBadge" hidden>0</span></button>
+      <button class="nav-btn" type="button" data-view="audit">Audit Log</button>
     </nav>
     <div class="sidebar-bottom">
       <span id="adminEmail"></span>
@@ -69,17 +71,21 @@
       <div class="panel">
         <div class="panel-head">
           <div><p class="kicker">Manpower</p><h2>Enquiries</h2></div>
-          <div class="panel-actions"><button class="secondary" type="button" id="exportEnquiriesPdf">Download All PDF</button><button class="secondary" type="button" data-refresh="enquiries">Refresh</button></div>
+          <div class="panel-actions"><button class="secondary" type="button" id="exportEnquiriesPdf">Download All PDF</button><button class="secondary" type="button" id="exportEnquiriesCsv">Download CSV</button><button class="secondary" type="button" data-refresh="enquiries">Refresh</button></div>
         </div>
         <div class="admin-filters">
           <input id="enquirySearch" type="search" placeholder="Search name, company, email, phone or trade">
           <select id="enquiryStatusFilter"><option value="">All statuses</option><option>New</option><option>Contacted</option><option>Closed</option></select>
           <select id="enquirySort"><option value="newest">Newest first</option><option value="oldest">Oldest first</option><option value="name">Name A–Z</option><option value="company">Company A–Z</option></select>
+          <select id="enquiryDatePreset"><option value="">All dates</option><option value="today">Today</option><option value="week">This week</option><option value="month">This month</option><option value="custom">Custom dates</option></select>
+          <input id="enquiryDateFrom" type="date" aria-label="Enquiry date from">
+          <input id="enquiryDateTo" type="date" aria-label="Enquiry date to">
         </div>
+        <div class="bulk-bar" id="enquiryBulkBar"><label><input type="checkbox" id="enquirySelectAll"> Select visible</label><span id="enquirySelectedCount">0 selected</span><select id="enquiryBulkStatus"><option value="">Change status…</option><option>New</option><option>Contacted</option><option>Closed</option></select><button class="secondary" id="enquiryBulkApply" type="button">Apply</button><button class="link-btn danger" id="enquiryBulkTrash" type="button">Move to Trash</button></div>
         <div class="table-wrap">
           <table>
-            <thead><tr><th>Date</th><th>Name</th><th>Company</th><th>Contact</th><th>Requirement</th><th>Status</th><th></th></tr></thead>
-            <tbody id="enquiryRows"><tr><td colspan="7">Open this section to load enquiries.</td></tr></tbody>
+            <thead><tr><th class="check-col"></th><th>Date</th><th>Name</th><th>Company</th><th>Contact</th><th>Requirement</th><th>Status</th><th></th></tr></thead>
+            <tbody id="enquiryRows"><tr><td colspan="8">Open this section to load enquiries.</td></tr></tbody>
           </table>
         </div>
       </div>
@@ -89,17 +95,21 @@
       <div class="panel">
         <div class="panel-head">
           <div><p class="kicker">Recruitment</p><h2>Applications</h2></div>
-          <div class="panel-actions"><button class="secondary" type="button" id="exportApplicationsPdf">Download All PDF</button><button class="secondary" type="button" data-refresh="applications">Refresh</button></div>
+          <div class="panel-actions"><button class="secondary" type="button" id="exportApplicationsPdf">Download All PDF</button><button class="secondary" type="button" id="exportApplicationsCsv">Download CSV</button><button class="secondary" type="button" data-refresh="applications">Refresh</button></div>
         </div>
         <div class="admin-filters">
           <input id="applicationSearch" type="search" placeholder="Search applicant, trade, email, phone or location">
           <select id="applicationStatusFilter"><option value="">All statuses</option><option>New</option><option>Reviewed</option><option>Shortlisted</option><option>Rejected</option></select>
           <select id="applicationSort"><option value="newest">Newest first</option><option value="oldest">Oldest first</option><option value="name">Name A–Z</option><option value="trade">Trade A–Z</option></select>
+          <select id="applicationDatePreset"><option value="">All dates</option><option value="today">Today</option><option value="week">This week</option><option value="month">This month</option><option value="custom">Custom dates</option></select>
+          <input id="applicationDateFrom" type="date" aria-label="Application date from">
+          <input id="applicationDateTo" type="date" aria-label="Application date to">
         </div>
+        <div class="bulk-bar" id="applicationBulkBar"><label><input type="checkbox" id="applicationSelectAll"> Select visible</label><span id="applicationSelectedCount">0 selected</span><select id="applicationBulkStatus"><option value="">Change status…</option><option>New</option><option>Reviewed</option><option>Shortlisted</option><option>Rejected</option></select><button class="secondary" id="applicationBulkApply" type="button">Apply</button><button class="link-btn danger" id="applicationBulkTrash" type="button">Move to Trash</button></div>
         <div class="table-wrap">
           <table>
-            <thead><tr><th>Date</th><th>Applicant</th><th>Trade</th><th>Contact</th><th>Status</th><th>CV</th><th></th></tr></thead>
-            <tbody id="applicationRows"><tr><td colspan="7">Open this section to load applications.</td></tr></tbody>
+            <thead><tr><th class="check-col"></th><th>Date</th><th>Applicant</th><th>Trade</th><th>Contact</th><th>Status</th><th>CV</th><th></th></tr></thead>
+            <tbody id="applicationRows"><tr><td colspan="8">Open this section to load applications.</td></tr></tbody>
           </table>
         </div>
       </div>
@@ -109,17 +119,21 @@
       <div class="panel">
         <div class="panel-head">
           <div><p class="kicker">General enquiries</p><h2>Contact Messages</h2></div>
-          <div class="panel-actions"><button class="secondary" type="button" id="exportContactsPdf">Download All PDF</button><button class="secondary" type="button" data-refresh="contacts">Refresh</button></div>
+          <div class="panel-actions"><button class="secondary" type="button" id="exportContactsPdf">Download All PDF</button><button class="secondary" type="button" id="exportContactsCsv">Download CSV</button><button class="secondary" type="button" data-refresh="contacts">Refresh</button></div>
         </div>
         <div class="admin-filters">
           <input id="contactSearch" type="search" placeholder="Search name, company, email, phone or service">
           <select id="contactStatusFilter"><option value="">All statuses</option><option>New</option><option>Replied</option><option>Closed</option></select>
           <select id="contactSort"><option value="newest">Newest first</option><option value="oldest">Oldest first</option><option value="name">Name A–Z</option><option value="company">Company A–Z</option></select>
+          <select id="contactDatePreset"><option value="">All dates</option><option value="today">Today</option><option value="week">This week</option><option value="month">This month</option><option value="custom">Custom dates</option></select>
+          <input id="contactDateFrom" type="date" aria-label="Contact message date from">
+          <input id="contactDateTo" type="date" aria-label="Contact message date to">
         </div>
+        <div class="bulk-bar" id="contactBulkBar"><label><input type="checkbox" id="contactSelectAll"> Select visible</label><span id="contactSelectedCount">0 selected</span><select id="contactBulkStatus"><option value="">Change status…</option><option>New</option><option>Replied</option><option>Closed</option></select><button class="secondary" id="contactBulkApply" type="button">Apply</button><button class="link-btn danger" id="contactBulkTrash" type="button">Move to Trash</button></div>
         <div class="table-wrap">
           <table>
-            <thead><tr><th>Date</th><th>Name</th><th>Company</th><th>Contact</th><th>Service</th><th>Status</th><th></th></tr></thead>
-            <tbody id="contactRows"><tr><td colspan="7">Open this section to load contact messages.</td></tr></tbody>
+            <thead><tr><th class="check-col"></th><th>Date</th><th>Name</th><th>Company</th><th>Contact</th><th>Service</th><th>Status</th><th></th></tr></thead>
+            <tbody id="contactRows"><tr><td colspan="8">Open this section to load contact messages.</td></tr></tbody>
           </table>
         </div>
       </div>
@@ -144,7 +158,7 @@
         <div class="panel">
           <div class="panel-head">
             <div><p class="kicker">Display order</p><h2>Clients</h2></div>
-            <div class="panel-actions"><button class="secondary" type="button" id="exportClientsPdf">Download All PDF</button><button class="secondary" type="button" data-refresh="clients">Refresh</button></div>
+            <div class="panel-actions"><button class="secondary" type="button" id="exportClientsPdf">Download All PDF</button><button class="secondary" type="button" id="exportClientsCsv">Download CSV</button><button class="secondary" type="button" data-refresh="clients">Refresh</button></div>
           </div>
           <div class="admin-filters admin-filters-clients">
             <input id="clientSearch" type="search" placeholder="Search clients">
@@ -155,6 +169,21 @@
         </div>
       </div>
     </section>
+    <section class="admin-view" data-panel="trash">
+      <div class="panel">
+        <div class="panel-head"><div><p class="kicker">Recoverable items</p><h2>Trash</h2></div><button class="secondary" type="button" data-refresh="trash">Refresh</button></div>
+        <p class="muted small">Items moved here can be restored. Permanent deletion removes the database record; for applications it also removes the stored CV.</p>
+        <div class="table-wrap"><table><thead><tr><th>Deleted</th><th>Type</th><th>Name</th><th>Details</th><th></th></tr></thead><tbody id="trashRows"><tr><td colspan="5">Open this section to load trash.</td></tr></tbody></table></div>
+      </div>
+    </section>
+
+    <section class="admin-view" data-panel="audit">
+      <div class="panel">
+        <div class="panel-head"><div><p class="kicker">Administration</p><h2>Audit Log</h2></div><button class="secondary" type="button" data-refresh="audit">Refresh</button></div>
+        <div class="table-wrap"><table><thead><tr><th>Date</th><th>Action</th><th>Area</th><th>Record</th><th>Details</th></tr></thead><tbody id="auditRows"><tr><td colspan="5">Open this section to load audit activity.</td></tr></tbody></table></div>
+      </div>
+    </section>
+
   </main>
 </div>
 
@@ -164,6 +193,7 @@
   <div class="dialog-footer"><button class="secondary" id="dialogPdf" type="button">Download PDF</button></div>
 </dialog>
 
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
 (function () {
   'use strict';
@@ -176,6 +206,10 @@
   var applicationsCache = null;
   var contactsCache = null;
   var clientsCache = null;
+  var trashCache = null;
+  var auditCache = null;
+  var realtimeClient = null;
+  var realtimeChannel = null;
   var currentDetailItem = null;
   var currentDetailType = '';
   var dashboardSnapshot = null;
@@ -361,7 +395,7 @@
     }
   });
 
-  var titles = {dashboard:'Dashboard',enquiries:'Enquiries',applications:'Applications',contacts:'Contact Messages',clients:'Clients'};
+  var titles = {dashboard:'Dashboard',enquiries:'Enquiries',applications:'Applications',contacts:'Contact Messages',clients:'Clients',trash:'Trash',audit:'Audit Log'};
   all('.nav-btn').forEach(function (btn) {
     btn.addEventListener('click', function () {
       var view = btn.getAttribute('data-view');
@@ -374,6 +408,8 @@
       if (view === 'applications') loadApplications();
       if (view === 'contacts') loadContacts();
       if (view === 'clients') loadClients();
+      if (view === 'trash') loadTrash();
+      if (view === 'audit') loadAudit();
     });
   });
   $('#mobileNavBtn').addEventListener('click', function () { $('#sidebar').classList.toggle('is-open'); });
@@ -385,6 +421,8 @@
       if (view === 'applications') loadApplications();
       if (view === 'contacts') loadContacts();
       if (view === 'clients') loadClients();
+      if (view === 'trash') loadTrash();
+      if (view === 'audit') loadAudit();
     });
   });
 
