@@ -75,10 +75,29 @@
   } else counters.forEach(count);
 
   // Seamless transform-based client marquee with drag, touch and keyboard control.
-  document.querySelectorAll('[data-marquee]').forEach(viewport => {
+  document.querySelectorAll('[data-marquee]').forEach(async viewport => {
     const track = viewport.querySelector('.marquee-track');
     const group = viewport.querySelector('.marquee-group');
     if (!track || !group) return;
+
+    // Load enabled clients from Supabase. Keep the existing HTML as a fallback.
+    try {
+      const response = await fetch(
+        'https://sqeyjhedqufykqduvtcb.supabase.co/rest/v1/clients?select=name,logo_path&enabled=eq.true&order=display_order.asc,name.asc',
+        { headers: { apikey: 'sb_publishable_goNXOTguYIcivBwulGSf_g_KhY2iRYK' } }
+      );
+      if (response.ok) {
+        const clients = await response.json();
+        if (Array.isArray(clients) && clients.length) {
+          group.innerHTML = clients.map(client => {
+            const name = String(client.name || '').replace(/[&<>"']/g, ch => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));
+            const src = String(client.logo_path || '').replace(/"/g, '&quot;');
+            return `<li class="client-logo"><img alt="${name}" decoding="async" loading="lazy" src="${src}"/></li>`;
+          }).join('');
+        }
+      }
+    } catch (_) {}
+
     const clone = group.cloneNode(true);
       clone.setAttribute('aria-hidden','true');
       clone.querySelectorAll('img').forEach(img => img.alt='');
@@ -171,19 +190,85 @@
     measure();
   });
 
-  // Forms post directly to the form backend. The success redirect always follows the deployed origin.
+  // Submit public forms to Supabase Edge Functions.
   document.querySelectorAll('[data-site-form]').forEach(form => {
-    const next = form.querySelector('[data-next-url]');
-    if (next) next.value = new URL('/thanks/', location.origin).href;
     const file = form.querySelector('input[type="file"]');
     const label = form.querySelector('[data-file-label]');
-    if (file && label) file.addEventListener('change',()=>{ label.textContent = file.files?.[0]?.name || 'Choose PDF, DOC or DOCX'; });
-    form.addEventListener('submit', e => {
-      if (!form.reportValidity()) { e.preventDefault(); return; }
-      if (form.dataset.sent === 'true') { e.preventDefault(); return; }
-      form.dataset.sent='true'; form.classList.add('is-submitting');
-      const button=form.querySelector('button[type="submit"]');
-      if (button) { button.disabled=true; button.querySelector('span').textContent='Sending…'; }
+    if (file && label) {
+      file.addEventListener('change', () => {
+        label.textContent = file.files?.[0]?.name || 'Choose PDF, DOC or DOCX';
+      });
+    }
+
+    form.addEventListener('submit', async e => {
+      e.preventDefault();
+      if (!form.reportValidity() || form.dataset.sent === 'true') return;
+
+      const button = form.querySelector('button[type="submit"]');
+      const buttonText = button?.querySelector('span');
+      const originalText = buttonText?.textContent || 'Submit';
+      let status = form.querySelector('.form-status');
+      if (!status) {
+        status = document.createElement('p');
+        status.className = 'form-status';
+        status.setAttribute('role', 'status');
+        form.querySelector('.form-submit-row')?.append(status);
+      }
+
+      form.dataset.sent = 'true';
+      form.classList.add('is-submitting');
+      if (button) button.disabled = true;
+      if (buttonText) buttonText.textContent = 'Sending…';
+      status.textContent = '';
+      status.classList.remove('is-error');
+
+      try {
+        const isApplication = Boolean(file);
+        const endpoint = isApplication
+          ? 'https://sqeyjhedqufykqduvtcb.supabase.co/functions/v1/submit-application'
+          : 'https://sqeyjhedqufykqduvtcb.supabase.co/functions/v1/submit-enquiry';
+
+        let body;
+        let headers = {};
+        if (isApplication) {
+          body = new FormData(form);
+          body.delete('_captcha');
+          body.delete('_subject');
+          body.delete('_template');
+          body.delete('_next');
+          if (body.has('_honey')) {
+            body.set('website', body.get('_honey') || '');
+            body.delete('_honey');
+          }
+        } else {
+          const data = new FormData(form);
+          body = JSON.stringify({
+            company: data.get('company') || '',
+            name: data.get('name') || '',
+            phone: data.get('phone') || '',
+            email: data.get('email') || '',
+            project_location: data.get('project_location') || '',
+            trade: data.get('trade') || '',
+            workers: data.get('workers') || '',
+            message: data.get('message') || '',
+            website: data.get('_honey') || ''
+          });
+          headers['Content-Type'] = 'application/json';
+        }
+
+        const response = await fetch(endpoint, { method: 'POST', headers, body });
+        const result = await response.json().catch(() => ({}));
+        if (!response.ok) throw new Error(result.error || 'Submission failed.');
+
+        location.assign('/thanks/');
+      } catch (error) {
+        form.dataset.sent = 'false';
+        form.classList.remove('is-submitting');
+        if (button) button.disabled = false;
+        if (buttonText) buttonText.textContent = originalText;
+        status.textContent = error?.message || 'We could not send this right now. Please try again.';
+        status.classList.add('is-error');
+      }
     });
   });
 
