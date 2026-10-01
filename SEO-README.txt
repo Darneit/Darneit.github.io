@@ -15,7 +15,7 @@ Implemented:
 - unique group-company descriptions based on the company names/scopes
 - Dubai, Abu Dhabi and Sharjah manpower landing pages
 - internal links to service-area pages
-- FormSubmit CAPTCHA + existing honeypot
+- Supabase Edge Function form handling + honeypot and rate limiting
 - form autocomplete improvements
 - analytics event hooks ready for a future GA4 tag
 - favicon + Apple touch icon
@@ -26,7 +26,7 @@ External steps requiring account/domain access:
 3. Add Bing Webmaster Tools and submit the sitemap.
 4. Add a real GA4 measurement tag only if analytics is wanted; event hooks are already prepared.
 5. Claim/verify the Google Business Profile and keep name/phone/address/website consistent.
-6. Test FormSubmit in production and complete its destination-email activation if needed.
+6. Verify Resend sender-domain setup before switching from the Resend test sender.
 7. Add real project/case-study pages when verified project details are available. Real evidence should not be fabricated.
 
 No unverified street address, certification, client project, project quantity, or analytics ID was invented.
