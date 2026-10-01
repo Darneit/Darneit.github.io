@@ -83,8 +83,8 @@
     // Load enabled clients from Supabase. Keep the existing HTML as a fallback.
     try {
       const response = await fetch(
-        'https://sqeyjhedqufykqduvtcb.supabase.co/rest/v1/clients?select=name,logo_path&enabled=eq.true&order=display_order.asc,name.asc',
-        { headers: { apikey: 'sb_publishable_goNXOTguYIcivBwulGSf_g_KhY2iRYK' } }
+        'https://hjbzkhcoltoxzvabprdj.supabase.co/rest/v1/clients?select=name,logo_path&enabled=eq.true&order=display_order.asc,name.asc',
+        { headers: { apikey: 'sb_publishable_4mtyuQoyJf9zlOoWyKrtpw_aWUlDEc2' } }
       );
       if (response.ok) {
         const clients = await response.json();
