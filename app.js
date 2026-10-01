@@ -225,27 +225,65 @@
       try {
         const isApplication = Boolean(file);
         const isContact = !isApplication && location.pathname.replace(/\/+$/,'').endsWith('/contact');
-        const endpoint = isApplication
-          ? 'https://hjbzkhcoltoxzvabprdj.supabase.co/functions/v1/submit-application'
-          : isContact
+        if (isApplication) {
+          const data = new FormData(form);
+          const cv = file?.files?.[0];
+          if (!cv) throw new Error('Please attach your CV.');
+
+          const supabaseUrl = 'https://hjbzkhcoltoxzvabprdj.supabase.co';
+          const publishableKey = 'sb_publishable_4mtyuQoyJf9zlOoWyKrtpw_aWUlDEc2';
+
+          const prepareResponse = await fetch(supabaseUrl + '/functions/v1/prepare-application', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              name: data.get('name') || '',
+              phone: data.get('phone') || '',
+              email: data.get('email') || '',
+              nationality: data.get('nationality') || '',
+              location: data.get('location') || '',
+              trade: data.get('trade') || '',
+              experience: data.get('experience') || '',
+              employment_status: data.get('employment_status') || '',
+              message: data.get('message') || '',
+              website: data.get('_honey') || '',
+              cv_name: cv.name,
+              cv_type: cv.type,
+              cv_size: cv.size
+            })
+          });
+          const prepared = await prepareResponse.json().catch(() => ({}));
+          if (!prepareResponse.ok || !prepared?.id || !prepared?.path || !prepared?.token) {
+            throw new Error(prepared.error || 'Could not prepare your application.');
+          }
+
+          if (!window.supabase?.createClient) {
+            throw new Error('Upload service is unavailable. Please refresh and try again.');
+          }
+
+          if (buttonText) buttonText.textContent = 'Uploading CV…';
+          const uploadClient = window.supabase.createClient(supabaseUrl, publishableKey, {
+            auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false }
+          });
+          const { error: uploadError } = await uploadClient.storage
+            .from('cv-private')
+            .uploadToSignedUrl(prepared.path, prepared.token, cv, { contentType: cv.type });
+          if (uploadError) throw new Error(uploadError.message || 'CV upload failed.');
+
+          if (buttonText) buttonText.textContent = 'Finishing…';
+          const finalizeResponse = await fetch(supabaseUrl + '/functions/v1/finalize-application', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ id: prepared.id })
+          });
+          const finalized = await finalizeResponse.json().catch(() => ({}));
+          if (!finalizeResponse.ok) throw new Error(finalized.error || 'Could not finalize your application.');
+        } else {
+          const endpoint = isContact
             ? 'https://hjbzkhcoltoxzvabprdj.supabase.co/functions/v1/submit-contact'
             : 'https://hjbzkhcoltoxzvabprdj.supabase.co/functions/v1/submit-enquiry';
-
-        let body;
-        let headers = {};
-        if (isApplication) {
-          body = new FormData(form);
-          body.delete('_captcha');
-          body.delete('_subject');
-          body.delete('_template');
-          body.delete('_next');
-          if (body.has('_honey')) {
-            body.set('website', body.get('_honey') || '');
-            body.delete('_honey');
-          }
-        } else {
           const data = new FormData(form);
-          body = JSON.stringify({
+          const body = JSON.stringify({
             company: data.get('company') || '',
             name: data.get('name') || '',
             phone: data.get('phone') || '',
@@ -256,12 +294,10 @@
             message: data.get('message') || '',
             website: data.get('_honey') || ''
           });
-          headers['Content-Type'] = 'application/json';
+          const response = await fetch(endpoint, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body });
+          const result = await response.json().catch(() => ({}));
+          if (!response.ok) throw new Error(result.error || 'Submission failed.');
         }
-
-        const response = await fetch(endpoint, { method: 'POST', headers, body });
-        const result = await response.json().catch(() => ({}));
-        if (!response.ok) throw new Error(result.error || 'Submission failed.');
 
         location.assign('/thanks/');
       } catch (error) {
