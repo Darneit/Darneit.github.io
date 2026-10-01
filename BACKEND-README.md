@@ -49,3 +49,13 @@ Admin authorization never compares email addresses in frontend code. Add the off
 
 ## Notifications
 Change the notification recipient by updating the Supabase Function secret `ADMIN_NOTIFICATION_EMAIL`; no application code changes are needed.
+
+## Admin reliability update (2026-10-01)
+- The active dashboard code is now `admin/admin.js`; `admin/index.html` loads it with a versioned URL. The Supabase browser dependency is pinned to 2.117.2.
+- Full list reads use batches of up to 200 rows and the returned row count, rather than assuming the API returns every record. Tables display 50 rows per page. Filters and exports use the complete loaded dataset, including audit records; exports remain disabled until loading succeeds.
+- Login refresh is shared across concurrent requests and uses a browser lock where available to coordinate tabs. Logout cannot be undone by an in-flight refresh, and admin access is checked before showing the dashboard.
+- Realtime updates continue normally. The disconnected fallback runs once per minute for the active view instead of reloading four complete tables every five seconds. Manual Refresh invalidates the relevant cache.
+- CSV cells that could be interpreted as formulas are prefixed with an apostrophe.
+- `backend/contact-requirements.sql` records the additive database change applied as `contact_requirements_storage`. `backend/submit-contact/index.ts` is the deployed contact function source. Worker count and contract duration are validated and saved through a service-only RPC; details, CSV/PDF exports, and notification templates include them.
+- Regression tests: `node --test tests/*.test.cjs` (Node 22.13+ for TypeScript stripping).
+- Supabase leaked-password protection requires Pro or above. The current Free plan cannot enable it; no billing change was made.

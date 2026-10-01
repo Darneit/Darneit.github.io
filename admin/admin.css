@@ -114,3 +114,5 @@ dialog#detailDialog{
   .bulk-bar{align-items:stretch}
   .bulk-bar select,.bulk-bar button{width:100%}
 }
+
+.pagination{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-top:18px;color:#607080;font-size:.875rem}.pagination button:disabled{opacity:.45;cursor:default}
