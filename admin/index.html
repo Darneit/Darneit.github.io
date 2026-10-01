@@ -508,7 +508,7 @@
     ]).catch(function () {});
   }
   function loadEnquiries() {
-    if (!enquiriesCache) $('#enquiryRows').innerHTML = '<tr><td colspan="7">Loading…</td></tr>';
+    if (!enquiriesCache) $('#enquiryRows').innerHTML = '<tr><td colspan="8">Loading…</td></tr>';
     var source = enquiriesCache ? Promise.resolve(enquiriesCache) : rest('enquiries','select=*&deleted_at=is.null&order=created_at.desc',{method:'GET'});
     source.then(function (data) {
       data = data || [];
@@ -566,7 +566,7 @@
   }
 
   function loadApplications() {
-    if (!applicationsCache) $('#applicationRows').innerHTML = '<tr><td colspan="7">Loading…</td></tr>';
+    if (!applicationsCache) $('#applicationRows').innerHTML = '<tr><td colspan="8">Loading…</td></tr>';
     var source = applicationsCache ? Promise.resolve(applicationsCache) : rest('applications','select=*&deleted_at=is.null&cv_uploaded=eq.true&order=created_at.desc',{method:'GET'});
     source.then(function (data) {
       data = data || [];
@@ -868,6 +868,7 @@
         'Project Location: ' + (x.project_location || '-'),
         'Required Trade / Service: ' + (x.trade || '-'),
         'Workers Required: ' + (x.workers == null ? '-' : x.workers),
+        'Contract Duration: ' + (x.duration || '-'),
         'Status: ' + (x.status || '-'),
         'Submitted: ' + fmt(x.created_at),
         'Additional Information: ' + (x.message || '-')
@@ -914,7 +915,7 @@
     var status = $('#contactStatusFilter') ? $('#contactStatusFilter').value : '';
     var sort = $('#contactSort') ? $('#contactSort').value : 'newest';
     var rows = (data || []).filter(function (x) {
-      var hay = [x.name,x.company,x.email,x.phone,x.trade,x.project_location,x.message].map(norm).join(' ');
+      var hay = [x.name,x.company,x.email,x.phone,x.trade,x.project_location,x.duration,x.message].map(norm).join(' ');
       return (!q || hay.indexOf(q) >= 0) && (!status || x.status === status) && dateMatches(x.created_at,'contact');
     }).slice();
     rows.sort(function (a,b) {
@@ -942,7 +943,7 @@
   }
 
   function loadContacts() {
-    if (!contactsCache) $('#contactRows').innerHTML = '<tr><td colspan="7">Loading…</td></tr>';
+    if (!contactsCache) $('#contactRows').innerHTML = '<tr><td colspan="8">Loading…</td></tr>';
     var source = contactsCache ? Promise.resolve(contactsCache) : rest('contact_messages','select=*&deleted_at=is.null&order=created_at.desc',{method:'GET'});
     source.then(function (data) {
       data = data || [];
@@ -1116,6 +1117,7 @@
       project_location:'Project Location',
       trade:'Required Trade / Service',
       workers:'Workers Required',
+      duration:'Contract Duration',
       message:'Additional Information',
       status:'Status',
       created_at:'Submitted',
@@ -1128,7 +1130,7 @@
     };
 
     var order = type === 'Enquiry'
-      ? ['name','company','email','phone','project_location','trade','workers','message','status','created_at','updated_at']
+      ? ['name','company','email','phone','project_location','trade','workers','duration','message','status','created_at','updated_at']
       : type === 'Contact Message'
         ? ['name','company','email','phone','project_location','trade','message','status','created_at','updated_at']
         : ['name','email','phone','nationality','location','trade','experience','employment_status','message','status','cv_original_name','created_at','updated_at'];
@@ -1372,8 +1374,8 @@
 
   $('#exportEnquiriesCsv').addEventListener('click', function () {
     var rows = getFilteredEnquiries(enquiriesCache || []);
-    downloadCsv('PRTC-Enquiries.csv',['Submitted','Name','Company','Email','Phone','Project Location','Trade / Service','Workers','Status','Message'],rows.map(function (x) {
-      return [fmt(x.created_at),x.name,x.company,x.email,x.phone,x.project_location,x.trade,x.workers,x.status,x.message];
+    downloadCsv('PRTC-Enquiries.csv',['Submitted','Name','Company','Email','Phone','Project Location','Trade / Service','Workers','Contract Duration','Status','Message'],rows.map(function (x) {
+      return [fmt(x.created_at),x.name,x.company,x.email,x.phone,x.project_location,x.trade,x.workers,x.duration,x.status,x.message];
     }));
   });
 
