@@ -305,6 +305,7 @@
       return verifyAdmin(data).then(function () {
         loadDashboard();
         prefetchAdminData();
+        startLiveSync();
       });
     })
     .catch(function (err) {
@@ -325,6 +326,7 @@
   });
 
   $('#logoutBtn').addEventListener('click', function () {
+    if (liveSyncTimer) { clearInterval(liveSyncTimer); liveSyncTimer = null; }
     var old = session;
     saveSession(null);
     showLogin();
@@ -345,10 +347,10 @@
       all('.admin-view').forEach(function (panel) { panel.classList.toggle('is-active', panel.getAttribute('data-panel') === view); });
       $('#viewTitle').textContent = titles[view];
       $('#sidebar').classList.remove('is-open');
-      if (view === 'dashboard') loadDashboard();
-      if (view === 'enquiries') { enquiriesCache = null; loadEnquiries(); }
-      if (view === 'applications') { applicationsCache = null; loadApplications(); }
-      if (view === 'clients') { clientsCache = null; loadClients(); }
+      if (view === 'dashboard') loadDashboard(true);
+      if (view === 'enquiries') loadEnquiries();
+      if (view === 'applications') loadApplications();
+      if (view === 'clients') loadClients();
     });
   });
   $('#mobileNavBtn').addEventListener('click', function () { $('#sidebar').classList.toggle('is-open'); });
@@ -372,8 +374,8 @@
     });
   }
 
-  function loadDashboard() {
-    $('#recentActivity').innerHTML = '<div class="empty">Loading…</div>';
+  function loadDashboard(silent) {
+    if (!silent || !dashboardSnapshot) $('#recentActivity').innerHTML = '<div class="empty">Loading…</div>';
 
     return api('/rest/v1/rpc/get_admin_dashboard', {
       method:'POST',
@@ -427,7 +429,7 @@
     ]).catch(function () {});
   }
   function loadEnquiries() {
-    $('#enquiryRows').innerHTML = '<tr><td colspan="7">Loading…</td></tr>';
+    if (!enquiriesCache) $('#enquiryRows').innerHTML = '<tr><td colspan="7">Loading…</td></tr>';
     var source = enquiriesCache ? Promise.resolve(enquiriesCache) : rest('enquiries','select=*&order=created_at.desc',{method:'GET'});
     source.then(function (data) {
       data = data || [];
@@ -472,7 +474,7 @@
   }
 
   function loadApplications() {
-    $('#applicationRows').innerHTML = '<tr><td colspan="7">Loading…</td></tr>';
+    if (!applicationsCache) $('#applicationRows').innerHTML = '<tr><td colspan="7">Loading…</td></tr>';
     var source = applicationsCache ? Promise.resolve(applicationsCache) : rest('applications','select=*&order=created_at.desc',{method:'GET'});
     source.then(function (data) {
       data = data || [];
@@ -809,7 +811,7 @@
   }
 
   function loadClients() {
-    $('#clientRows').innerHTML = '<div class="empty">Loading…</div>';
+    if (!clientsCache) $('#clientRows').innerHTML = '<div class="empty">Loading…</div>';
     var source = clientsCache ? Promise.resolve(clientsCache) : rest('clients','select=*&order=display_order.asc,name.asc',{method:'GET'});
     source.then(function (data) {
       clients = data || [];
@@ -982,29 +984,65 @@
     downloadTextPdf('PRTC-' + currentDetailType + '-' + (currentDetailItem.name || 'Record').replace(/[^a-z0-9]+/gi,'-') + '.pdf','PRTC Group - ' + currentDetailType,sections);
   });
 
-  var lastAutoRefresh = 0;
-  function refreshVisibleAdminView() {
-    if (!session || $('#adminView').hidden) return;
-    var now = Date.now();
-    if (now - lastAutoRefresh < 1500) return;
-    lastAutoRefresh = now;
+  var liveSyncTimer = null;
+  var liveSyncBusy = false;
 
-    var active = document.querySelector('.admin-view.is-active');
-    var view = active ? active.getAttribute('data-panel') : 'dashboard';
-
-    enquiriesCache = null;
-    applicationsCache = null;
-    clientsCache = null;
-
-    if (view === 'dashboard') loadDashboard();
-    if (view === 'enquiries') loadEnquiries();
-    if (view === 'applications') loadApplications();
-    if (view === 'clients') loadClients();
+  function sameData(a,b) {
+    try { return JSON.stringify(a || []) === JSON.stringify(b || []); }
+    catch (e) { return false; }
   }
 
-  window.addEventListener('focus', refreshVisibleAdminView);
+  function activeAdminView() {
+    var active = document.querySelector('.admin-view.is-active');
+    return active ? active.getAttribute('data-panel') : 'dashboard';
+  }
+
+  function silentAdminSync() {
+    if (!session || $('#adminView').hidden || document.hidden || liveSyncBusy) return;
+    liveSyncBusy = true;
+
+    Promise.all([
+      rest('enquiries','select=*&order=created_at.desc',{method:'GET'}),
+      rest('applications','select=*&order=created_at.desc',{method:'GET'}),
+      api('/rest/v1/rpc/get_admin_dashboard',{
+        method:'POST',
+        headers:{'Content-Type':'application/json'},
+        body:'{}'
+      }).then(function (res) { return res.ok ? res.json() : null; })
+    ]).then(function (sets) {
+      var newEnquiries = sets[0] || [];
+      var newApplications = sets[1] || [];
+      var newDashboard = sets[2];
+      var view = activeAdminView();
+
+      if (!sameData(enquiriesCache,newEnquiries)) {
+        enquiriesCache = newEnquiries;
+        if (view === 'enquiries') loadEnquiries();
+      }
+
+      if (!sameData(applicationsCache,newApplications)) {
+        applicationsCache = newApplications;
+        if (view === 'applications') loadApplications();
+      }
+
+      if (newDashboard && !sameData(dashboardSnapshot,newDashboard)) {
+        dashboardSnapshot = newDashboard;
+        if (view === 'dashboard') loadDashboard(true);
+      }
+    }).catch(function () {
+      // Keep the current screen untouched if a background sync fails.
+    }).then(function () {
+      liveSyncBusy = false;
+    });
+  }
+
+  function startLiveSync() {
+    if (liveSyncTimer) clearInterval(liveSyncTimer);
+    liveSyncTimer = setInterval(silentAdminSync, 3000);
+  }
+
   document.addEventListener('visibilitychange', function () {
-    if (!document.hidden) refreshVisibleAdminView();
+    if (!document.hidden) silentAdminSync();
   });
 
   session = storedSession();
@@ -1015,6 +1053,7 @@
     verifyAdmin(session).then(function () {
       loadDashboard();
       prefetchAdminData();
+      startLiveSync();
     }).catch(function () {
       return refreshSession().then(function (ok) {
         if (!ok) throw new Error('Your session has expired. Please sign in again.');
@@ -1022,6 +1061,7 @@
         return verifyAdmin(session).then(function () {
           loadDashboard();
           prefetchAdminData();
+          startLiveSync();
         });
       });
     }).catch(function (err) {
