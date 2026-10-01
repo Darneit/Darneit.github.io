@@ -383,6 +383,8 @@
 
   $('#logoutBtn').addEventListener('click', function () {
     if (liveSyncTimer) { clearInterval(liveSyncTimer); liveSyncTimer = null; }
+    if (realtimeClient && realtimeChannel) { try { realtimeClient.removeChannel(realtimeChannel); } catch (e) {} }
+    realtimeClient = null; realtimeChannel = null;
     var old = session;
     saveSession(null);
     showLogin();
@@ -997,6 +999,84 @@
     });
   }
 
+
+  function loadTrash() {
+    $('#trashRows').innerHTML = '<tr><td colspan="5">Loading…</td></tr>';
+    Promise.all([
+      rest('enquiries','select=*&deleted_at=not.is.null&order=deleted_at.desc',{method:'GET'}),
+      rest('applications','select=*&deleted_at=not.is.null&order=deleted_at.desc',{method:'GET'}),
+      rest('contact_messages','select=*&deleted_at=not.is.null&order=deleted_at.desc',{method:'GET'})
+    ]).then(function (sets) {
+      var rows = [];
+      (sets[0] || []).forEach(function (x) { rows.push({table:'enquiries',type:'Enquiry',item:x}); });
+      (sets[1] || []).forEach(function (x) { rows.push({table:'applications',type:'Application',item:x}); });
+      (sets[2] || []).forEach(function (x) { rows.push({table:'contact_messages',type:'Contact Message',item:x}); });
+      rows.sort(function (a,b) { return new Date(b.item.deleted_at) - new Date(a.item.deleted_at); });
+      trashCache = rows;
+      $('#trashRows').innerHTML = rows.length ? rows.map(function (r) {
+        var x = r.item;
+        var detail = r.type === 'Application' ? x.trade : (x.company || x.trade || x.email || '—');
+        return '<tr><td>' + fmt(x.deleted_at) + '</td><td>' + esc(r.type) + '</td><td><strong>' + esc(x.name) + '</strong></td><td>' + esc(detail) + '</td><td><div class="row-actions"><button class="link-btn" type="button" data-trash-restore="' + r.table + '|' + x.id + '">Restore</button><button class="link-btn danger" type="button" data-trash-delete="' + r.table + '|' + x.id + '">Delete permanently</button></div></td></tr>';
+      }).join('') : '<tr><td colspan="5">Trash is empty.</td></tr>';
+
+      all('[data-trash-restore]').forEach(function (btn) {
+        btn.addEventListener('click', function () {
+          var parts = btn.getAttribute('data-trash-restore').split('|');
+          rest(parts[0],'id=eq.' + encodeURIComponent(parts[1]),{method:'PATCH',body:JSON.stringify({deleted_at:null})}).then(function () {
+            trashCache = null;
+            invalidateTableCache(parts[0]);
+            loadTrash();
+            loadDashboard(true);
+          }).catch(function (err) { alert(err.message); });
+        });
+      });
+
+      all('[data-trash-delete]').forEach(function (btn) {
+        btn.addEventListener('click', function () {
+          var parts = btn.getAttribute('data-trash-delete').split('|');
+          var entry = (trashCache || []).find(function (r) { return r.table === parts[0] && r.item.id === parts[1]; });
+          if (!entry || !confirm('Permanently delete ' + entry.item.name + '? This cannot be undone.')) return;
+
+          var cvDelete = Promise.resolve();
+          if (parts[0] === 'applications' && entry.item.cv_path) {
+            var path = entry.item.cv_path.split('/').map(encodeURIComponent).join('/');
+            cvDelete = api('/storage/v1/object/cv-private/' + path,{method:'DELETE'}).then(function () {}).catch(function () {});
+          }
+
+          Promise.all([
+            rest(parts[0],'id=eq.' + encodeURIComponent(parts[1]),{method:'DELETE'}),
+            cvDelete
+          ]).then(function () {
+            trashCache = null;
+            loadTrash();
+            loadDashboard(true);
+          }).catch(function (err) { alert(err.message); });
+        });
+      });
+    }).catch(function (err) {
+      $('#trashRows').innerHTML = '<tr><td colspan="5">' + esc(err.message) + '</td></tr>';
+    });
+  }
+
+  function loadAudit() {
+    $('#auditRows').innerHTML = '<tr><td colspan="5">Loading…</td></tr>';
+    rest('admin_audit_log','select=*&order=created_at.desc&limit=250',{method:'GET'}).then(function (rows) {
+      auditCache = rows || [];
+      $('#auditRows').innerHTML = auditCache.length ? auditCache.map(function (x) {
+        var details = x.details && Object.keys(x.details).length ? JSON.stringify(x.details) : '—';
+        return '<tr><td>' + fmt(x.created_at) + '</td><td><strong>' + esc(String(x.action || '').replace(/_/g,' ')) + '</strong></td><td>' + esc(x.entity_type || '—') + '</td><td><span class="muted">' + esc(x.entity_id || '—') + '</span></td><td>' + esc(details) + '</td></tr>';
+      }).join('') : '<tr><td colspan="5">No admin actions recorded yet.</td></tr>';
+    }).catch(function (err) {
+      $('#auditRows').innerHTML = '<tr><td colspan="5">' + esc(err.message) + '</td></tr>';
+    });
+  }
+
+  function invalidateTableCache(table) {
+    if (table === 'enquiries') enquiriesCache = null;
+    if (table === 'applications') applicationsCache = null;
+    if (table === 'contact_messages') contactsCache = null;
+  }
+
   function updateStatus(table,id,status) {
     rest(table,'id=eq.' + encodeURIComponent(id),{method:'PATCH',body:JSON.stringify({status:status})}).then(function () {
       var cache = table === 'enquiries' ? enquiriesCache : table === 'applications' ? applicationsCache : contactsCache;
@@ -1212,6 +1292,61 @@
 
 
 
+
+  function bulkStatus(table,prefix,selector) {
+    var ids = selectedIds(selector);
+    var statusEl = $('#' + prefix + 'BulkStatus');
+    var status = statusEl ? statusEl.value : '';
+    if (!ids.length || !status) return;
+    Promise.all(ids.map(function (id) {
+      return rest(table,'id=eq.' + encodeURIComponent(id),{method:'PATCH',body:JSON.stringify({status:status})});
+    })).then(function () {
+      var cache = table === 'enquiries' ? enquiriesCache : table === 'applications' ? applicationsCache : contactsCache;
+      (cache || []).forEach(function (x) { if (ids.indexOf(x.id) >= 0) x.status = status; });
+      if (prefix === 'enquiry') loadEnquiries();
+      if (prefix === 'application') loadApplications();
+      if (prefix === 'contact') loadContacts();
+      loadDashboard(true);
+    }).catch(function (err) { alert(err.message); });
+  }
+
+  function bulkTrash(table,prefix,selector) {
+    var ids = selectedIds(selector);
+    if (!ids.length || !confirm('Move ' + ids.length + ' selected item(s) to Trash?')) return;
+    var deletedAt = new Date().toISOString();
+    Promise.all(ids.map(function (id) {
+      return rest(table,'id=eq.' + encodeURIComponent(id),{method:'PATCH',body:JSON.stringify({deleted_at:deletedAt})});
+    })).then(function () {
+      if (table === 'enquiries') enquiriesCache = (enquiriesCache || []).filter(function (x) { return ids.indexOf(x.id) < 0; });
+      if (table === 'applications') applicationsCache = (applicationsCache || []).filter(function (x) { return ids.indexOf(x.id) < 0; });
+      if (table === 'contact_messages') contactsCache = (contactsCache || []).filter(function (x) { return ids.indexOf(x.id) < 0; });
+      if (prefix === 'enquiry') loadEnquiries();
+      if (prefix === 'application') loadApplications();
+      if (prefix === 'contact') loadContacts();
+      trashCache = null;
+      loadDashboard(true);
+    }).catch(function (err) { alert(err.message); });
+  }
+
+  function bindBulkSelection(prefix,selector) {
+    var allBox = $('#' + prefix + 'SelectAll');
+    if (allBox) allBox.addEventListener('change', function () {
+      all(selector).forEach(function (el) { el.checked = allBox.checked; });
+      setSelectedCount(prefix,selector);
+    });
+  }
+
+  bindBulkSelection('enquiry','[data-enquiry-select]');
+  bindBulkSelection('application','[data-application-select]');
+  bindBulkSelection('contact','[data-contact-select]');
+
+  $('#enquiryBulkApply').addEventListener('click', function () { bulkStatus('enquiries','enquiry','[data-enquiry-select]'); });
+  $('#applicationBulkApply').addEventListener('click', function () { bulkStatus('applications','application','[data-application-select]'); });
+  $('#contactBulkApply').addEventListener('click', function () { bulkStatus('contact_messages','contact','[data-contact-select]'); });
+  $('#enquiryBulkTrash').addEventListener('click', function () { bulkTrash('enquiries','enquiry','[data-enquiry-select]'); });
+  $('#applicationBulkTrash').addEventListener('click', function () { bulkTrash('applications','application','[data-application-select]'); });
+  $('#contactBulkTrash').addEventListener('click', function () { bulkTrash('contact_messages','contact','[data-contact-select]'); });
+
   bindAdminFilters();
 
   $('#exportEnquiriesPdf').addEventListener('click', function () {
@@ -1219,14 +1354,35 @@
     downloadTextPdf('PRTC-Enquiries.pdf','PRTC Group - Enquiries (' + rows.length + ')', enquirySections(rows));
   });
 
+  $('#exportEnquiriesCsv').addEventListener('click', function () {
+    var rows = getFilteredEnquiries(enquiriesCache || []);
+    downloadCsv('PRTC-Enquiries.csv',['Submitted','Name','Company','Email','Phone','Project Location','Trade / Service','Workers','Status','Message'],rows.map(function (x) {
+      return [fmt(x.created_at),x.name,x.company,x.email,x.phone,x.project_location,x.trade,x.workers,x.status,x.message];
+    }));
+  });
+
   $('#exportApplicationsPdf').addEventListener('click', function () {
     var rows = getFilteredApplications(applicationsCache || []);
     downloadTextPdf('PRTC-Applications.pdf','PRTC Group - Applications (' + rows.length + ')', applicationSections(rows));
   });
 
+  $('#exportApplicationsCsv').addEventListener('click', function () {
+    var rows = getFilteredApplications(applicationsCache || []);
+    downloadCsv('PRTC-Applications.csv',['Submitted','Name','Email','Phone','Nationality','Location','Trade','Experience','Employment Status','Status','CV','Message'],rows.map(function (x) {
+      return [fmt(x.created_at),x.name,x.email,x.phone,x.nationality,x.location,x.trade,x.experience,x.employment_status,x.status,x.cv_original_name,x.message];
+    }));
+  });
+
   $('#exportContactsPdf').addEventListener('click', function () {
     var rows = getFilteredContacts(contactsCache || []);
     downloadTextPdf('PRTC-Contact-Messages.pdf','PRTC Group - Contact Messages (' + rows.length + ')', contactSections(rows));
+  });
+
+  $('#exportContactsCsv').addEventListener('click', function () {
+    var rows = getFilteredContacts(contactsCache || []);
+    downloadCsv('PRTC-Contact-Messages.csv',['Submitted','Name','Company','Email','Phone','Project Location','Service / Requirement','Status','Message'],rows.map(function (x) {
+      return [fmt(x.created_at),x.name,x.company,x.email,x.phone,x.project_location,x.trade,x.status,x.message];
+    }));
   });
 
   $('#exportClientsPdf').addEventListener('click', function () {
@@ -1241,6 +1397,13 @@
     downloadTextPdf('PRTC-Clients.pdf','PRTC Group - Clients (' + rows.length + ')',sections);
   });
 
+  $('#exportClientsCsv').addEventListener('click', function () {
+    var rows = getFilteredClients(clientsCache || clients || []);
+    downloadCsv('PRTC-Clients.csv',['Name','Display Order','Status','Logo'],rows.map(function (x) {
+      return [x.name,x.display_order,x.enabled ? 'Enabled' : 'Hidden',x.logo_path];
+    }));
+  });
+
   $('#exportDashboardPdf').addEventListener('click', function () {
     if (!dashboardSnapshot) { loadDashboard(); return; }
     var c = dashboardSnapshot.counts || {};
@@ -1251,6 +1414,9 @@
         'Total Enquiries: ' + (c.total_enquiries || 0),
         'New Applications: ' + (c.new_applications || 0),
         'Total Applications: ' + (c.total_applications || 0),
+        'New Contact Messages: ' + (c.new_contacts || 0),
+        'Total Contact Messages: ' + (c.total_contacts || 0),
+        'Trash: ' + (c.trash_count || 0),
         'Active Clients: ' + (c.active_clients || 0)
       ]
     }];
@@ -1268,71 +1434,84 @@
   });
 
   var liveSyncTimer = null;
-  var liveSyncBusy = false;
-
-  function sameData(a,b) {
-    try { return JSON.stringify(a || []) === JSON.stringify(b || []); }
-    catch (e) { return false; }
-  }
 
   function activeAdminView() {
     var active = document.querySelector('.admin-view.is-active');
     return active ? active.getAttribute('data-panel') : 'dashboard';
   }
 
-  function silentAdminSync() {
-    if (!session || $('#adminView').hidden || document.hidden || liveSyncBusy) return;
-    liveSyncBusy = true;
+  function mergeRealtimeRow(table,eventType,newRow,oldRow) {
+    var cache = table === 'enquiries' ? enquiriesCache : table === 'applications' ? applicationsCache : table === 'contact_messages' ? contactsCache : clientsCache;
+    if (!cache) return;
 
-    Promise.all([
-      rest('enquiries','select=*&deleted_at=is.null&order=created_at.desc',{method:'GET'}),
-      rest('applications','select=*&deleted_at=is.null&order=created_at.desc',{method:'GET'}),
-      rest('contact_messages','select=*&deleted_at=is.null&order=created_at.desc',{method:'GET'}),
-      api('/rest/v1/rpc/get_admin_dashboard',{
-        method:'POST',
-        headers:{'Content-Type':'application/json'},
-        body:'{}'
-      }).then(function (res) { return res.ok ? res.json() : null; })
-    ]).then(function (sets) {
-      var newEnquiries = sets[0] || [];
-      var newApplications = sets[1] || [];
-      var newContacts = sets[2] || [];
-      var newDashboard = sets[3];
-      var view = activeAdminView();
+    var id = (newRow && newRow.id) || (oldRow && oldRow.id);
+    if (!id) return;
 
-      if (!sameData(enquiriesCache,newEnquiries)) {
-        enquiriesCache = newEnquiries;
-        if (view === 'enquiries') loadEnquiries();
-      }
+    var index = cache.findIndex(function (x) { return x.id === id; });
+    var active = newRow && !newRow.deleted_at;
 
-      if (!sameData(applicationsCache,newApplications)) {
-        applicationsCache = newApplications;
-        if (view === 'applications') loadApplications();
-      }
+    if (eventType === 'DELETE' || !active) {
+      if (index >= 0) cache.splice(index,1);
+    } else if (index >= 0) {
+      cache[index] = newRow;
+    } else {
+      cache.unshift(newRow);
+    }
 
-      if (!sameData(contactsCache,newContacts)) {
-        contactsCache = newContacts;
-        if (view === 'contacts') loadContacts();
-      }
+    if (table === 'clients') {
+      clients = clientsCache || [];
+      clients.sort(function (a,b) { return (Number(a.display_order)||0)-(Number(b.display_order)||0); });
+    }
 
-      if (newDashboard && !sameData(dashboardSnapshot,newDashboard)) {
-        dashboardSnapshot = newDashboard;
-        if (view === 'dashboard') loadDashboard(true);
-      }
-    }).catch(function () {
-      // Keep the current screen untouched if a background sync fails.
-    }).then(function () {
-      liveSyncBusy = false;
-    });
+    var view = activeAdminView();
+    if (table === 'enquiries' && view === 'enquiries') loadEnquiries();
+    if (table === 'applications' && view === 'applications') loadApplications();
+    if (table === 'contact_messages' && view === 'contacts') loadContacts();
+    if (table === 'clients' && view === 'clients') loadClients();
+
+    trashCache = null;
+    auditCache = null;
+    loadDashboard(true);
   }
 
   function startLiveSync() {
+    if (!session || !session.access_token || !window.supabase || !window.supabase.createClient) return;
+
+    if (realtimeClient && realtimeChannel) {
+      try { realtimeClient.removeChannel(realtimeChannel); } catch (e) {}
+    }
+
+    realtimeClient = window.supabase.createClient(SUPABASE_URL,API_KEY,{
+      auth:{persistSession:false,autoRefreshToken:false,detectSessionInUrl:false},
+      realtime:{params:{eventsPerSecond:10}}
+    });
+    realtimeClient.realtime.setAuth(session.access_token);
+
+    realtimeChannel = realtimeClient.channel('prtc-admin-live')
+      .on('postgres_changes',{event:'*',schema:'public',table:'enquiries'},function (payload) {
+        mergeRealtimeRow('enquiries',payload.eventType,payload.new,payload.old);
+      })
+      .on('postgres_changes',{event:'*',schema:'public',table:'applications'},function (payload) {
+        mergeRealtimeRow('applications',payload.eventType,payload.new,payload.old);
+      })
+      .on('postgres_changes',{event:'*',schema:'public',table:'contact_messages'},function (payload) {
+        mergeRealtimeRow('contact_messages',payload.eventType,payload.new,payload.old);
+      })
+      .on('postgres_changes',{event:'*',schema:'public',table:'clients'},function (payload) {
+        mergeRealtimeRow('clients',payload.eventType,payload.new,payload.old);
+      })
+      .subscribe();
+
+    // Low-frequency fallback only; it updates silently and never shows a loading state.
     if (liveSyncTimer) clearInterval(liveSyncTimer);
-    liveSyncTimer = setInterval(silentAdminSync, 3000);
+    liveSyncTimer = setInterval(function () {
+      if (!session || document.hidden) return;
+      loadDashboard(true);
+    },60000);
   }
 
   document.addEventListener('visibilitychange', function () {
-    if (!document.hidden) silentAdminSync();
+    if (!document.hidden && session) loadDashboard(true);
   });
 
   session = storedSession();
