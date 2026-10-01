@@ -966,7 +966,7 @@ p {
 
 .form-grid {
   display: grid;
-  grid-template-columns: repeat(2,1fr);
+  grid-template-columns: repeat(2,minmax(0,1fr));
   gap: 20px
 }
 
@@ -980,38 +980,60 @@ p {
 .form-field>span:first-child {
   font-size: 12px;
   font-weight: 760;
-  color: #425466
+  color: #425466;
+  letter-spacing: .01em
 }
 
-.form-field input, .form-field select, .form-field select {
-  width: 100%;
-  appearance: none;
-  -webkit-appearance: none;
-  cursor: pointer;
-  background-image:
-    linear-gradient(45deg, transparent 50%, #607080 50%),
-    linear-gradient(135deg, #607080 50%, transparent 50%);
-  background-position:
-    calc(100% - 18px) 50%,
-    calc(100% - 13px) 50%;
-  background-size: 5px 5px, 5px 5px;
-  background-repeat: no-repeat;
-  padding-right: 42px;
-}
-
+.form-field input,
+.form-field select,
 .form-field textarea {
   width: 100%;
-  border: 1px solid #d9e0e6;
-  background: #fff;
+  border: 1px solid #d6dde4;
+  background-color: #fff;
   color: var(--ink);
   border-radius: 12px;
   padding: 14px 15px;
+  font: inherit;
+  font-size: 15px;
+  line-height: 1.35;
   outline: 0;
-  transition: border-color .18s ease, box-shadow .18s ease
+  box-shadow: 0 1px 2px rgba(4,26,48,.02);
+  transition: border-color .18s ease, box-shadow .18s ease, background-color .18s ease
 }
 
-.form-field input {
+.form-field input,
+.form-field select {
   height: 50px
+}
+
+.form-field input::placeholder,
+.form-field textarea::placeholder {
+  color: #a0aab4;
+  opacity: 1
+}
+
+.form-field select {
+  appearance: none;
+  -webkit-appearance: none;
+  cursor: pointer;
+  padding-right: 46px;
+  background-image:
+    linear-gradient(45deg, transparent 50%, #5f6d79 50%),
+    linear-gradient(135deg, #5f6d79 50%, transparent 50%);
+  background-position:
+    calc(100% - 19px) 50%,
+    calc(100% - 14px) 50%;
+  background-size: 5px 5px, 5px 5px;
+  background-repeat: no-repeat
+}
+
+.form-field select:invalid {
+  color: #a0aab4
+}
+
+.form-field select option {
+  color: var(--ink);
+  background: #fff
 }
 
 .form-field textarea {
@@ -1019,9 +1041,17 @@ p {
   min-height: 130px
 }
 
-.form-field input:focus, .form-field select:focus, .form-field textarea:focus {
+.form-field input:hover,
+.form-field select:hover,
+.form-field textarea:hover {
+  border-color: #c4ced7
+}
+
+.form-field input:focus,
+.form-field select:focus,
+.form-field textarea:focus {
   border-color: #1683ff;
-  box-shadow: 0 0 0 3px #1683ff1f
+  box-shadow: 0 0 0 3px rgba(22,131,255,.12)
 }
 
 .form-field-wide, .form-file {
