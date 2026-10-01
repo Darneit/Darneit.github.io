@@ -406,10 +406,10 @@
       $('#viewTitle').textContent = titles[view];
       $('#sidebar').classList.remove('is-open');
       if (view === 'dashboard') loadDashboard(true);
-      if (view === 'enquiries') loadEnquiries();
-      if (view === 'applications') loadApplications();
-      if (view === 'contacts') loadContacts();
-      if (view === 'clients') loadClients();
+      if (view === 'enquiries') { loadEnquiries(); syncOneTable('enquiries'); }
+      if (view === 'applications') { loadApplications(); syncOneTable('applications'); }
+      if (view === 'contacts') { loadContacts(); syncOneTable('contact_messages'); }
+      if (view === 'clients') { loadClients(); syncOneTable('clients'); }
       if (view === 'trash') loadTrash();
       if (view === 'audit') loadAudit();
     });
@@ -1487,6 +1487,58 @@
     return active ? active.getAttribute('data-panel') : 'dashboard';
   }
 
+  function syncOneTable(table) {
+    if (!session || $('#adminView').hidden || document.hidden) return Promise.resolve();
+
+    var query = table === 'clients'
+      ? 'select=*&order=display_order.asc,name.asc'
+      : table === 'applications'
+        ? 'select=*&deleted_at=is.null&cv_uploaded=eq.true&order=created_at.desc'
+        : 'select=*&deleted_at=is.null&order=created_at.desc';
+
+    return rest(table,query,{method:'GET'}).then(function (rows) {
+      rows = rows || [];
+      var view = activeAdminView();
+
+      if (table === 'enquiries') {
+        if (JSON.stringify(enquiriesCache || []) !== JSON.stringify(rows)) {
+          enquiriesCache = rows;
+          if (view === 'enquiries') loadEnquiries();
+        }
+      } else if (table === 'applications') {
+        if (JSON.stringify(applicationsCache || []) !== JSON.stringify(rows)) {
+          applicationsCache = rows;
+          if (view === 'applications') loadApplications();
+        }
+      } else if (table === 'contact_messages') {
+        if (JSON.stringify(contactsCache || []) !== JSON.stringify(rows)) {
+          contactsCache = rows;
+          if (view === 'contacts') loadContacts();
+        }
+      } else if (table === 'clients') {
+        if (JSON.stringify(clientsCache || []) !== JSON.stringify(rows)) {
+          clientsCache = rows;
+          clients = rows;
+          if (view === 'clients') loadClients();
+        }
+      }
+    }).catch(function () {
+      // Keep the current UI untouched if a silent sync fails.
+    });
+  }
+
+  function syncAllAdminData() {
+    if (!session || $('#adminView').hidden || document.hidden) return;
+    Promise.all([
+      syncOneTable('enquiries'),
+      syncOneTable('applications'),
+      syncOneTable('contact_messages'),
+      syncOneTable('clients')
+    ]).then(function () {
+      loadDashboard(true);
+    });
+  }
+
   function mergeRealtimeRow(table,eventType,newRow,oldRow) {
     var cache = table === 'enquiries' ? enquiriesCache : table === 'applications' ? applicationsCache : table === 'contact_messages' ? contactsCache : clientsCache;
     if (!cache) return;
@@ -1549,16 +1601,13 @@
       })
       .subscribe();
 
-    // Low-frequency fallback only; it updates silently and never shows a loading state.
+    // Silent fallback keeps the admin current even if a realtime websocket is interrupted.
     if (liveSyncTimer) clearInterval(liveSyncTimer);
-    liveSyncTimer = setInterval(function () {
-      if (!session || document.hidden) return;
-      loadDashboard(true);
-    },60000);
+    liveSyncTimer = setInterval(syncAllAdminData,5000);
   }
 
   document.addEventListener('visibilitychange', function () {
-    if (!document.hidden && session) loadDashboard(true);
+    if (!document.hidden && session) syncAllAdminData();
   });
 
   session = storedSession();
