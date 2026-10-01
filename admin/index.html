@@ -15,15 +15,8 @@
     <p class="kicker">Secure administration</p>
     <h1>PRTC Admin</h1>
     <p class="muted">Sign in with an approved administrator account.</p>
-
-    <label>Email
-      <input id="loginEmail" type="email" autocomplete="username" required>
-    </label>
-
-    <label>Password
-      <input id="loginPassword" type="password" autocomplete="current-password" required>
-    </label>
-
+    <label>Email<input id="loginEmail" type="email" autocomplete="username" required></label>
+    <label>Password<input id="loginPassword" type="password" autocomplete="current-password" required></label>
     <button id="loginBtn" type="button" class="primary">Sign in</button>
     <p class="status" id="loginStatus" role="status">Ready to sign in.</p>
     <a class="back-link" href="/">← Back to website</a>
@@ -31,36 +24,108 @@
 </div>
 
 <div class="admin-shell" id="adminView" hidden>
-  <aside class="sidebar">
+  <aside class="sidebar" id="sidebar">
     <a href="/" class="admin-brand sidebar-brand"><img src="/assets/prtc-header-dark.png" alt="PRTC Group"></a>
     <nav>
-      <button class="nav-btn is-active" type="button">Dashboard</button>
+      <button class="nav-btn is-active" type="button" data-view="dashboard">Dashboard</button>
+      <button class="nav-btn" type="button" data-view="enquiries">Enquiries</button>
+      <button class="nav-btn" type="button" data-view="applications">Applications</button>
+      <button class="nav-btn" type="button" data-view="clients">Clients</button>
     </nav>
     <div class="sidebar-bottom">
       <span id="adminEmail"></span>
       <button id="logoutBtn" class="text-btn" type="button">Log out</button>
     </div>
   </aside>
+
   <main class="admin-main">
     <header class="admin-topbar">
       <div>
         <p class="kicker">PRTC Group</p>
-        <h1>Dashboard</h1>
+        <h1 id="viewTitle">Dashboard</h1>
       </div>
+      <button class="mobile-nav-btn" id="mobileNavBtn" type="button" aria-label="Toggle admin navigation">Menu</button>
     </header>
-    <section class="admin-view is-active">
+
+    <section class="admin-view is-active" data-panel="dashboard">
+      <div class="stats-grid" id="dashboardStats">
+        <div class="stat-card"><span>New enquiries</span><strong>…</strong></div>
+        <div class="stat-card"><span>Total enquiries</span><strong>…</strong></div>
+        <div class="stat-card"><span>New applications</span><strong>…</strong></div>
+        <div class="stat-card"><span>Total applications</span><strong>…</strong></div>
+        <div class="stat-card"><span>Active clients</span><strong>…</strong></div>
+      </div>
       <div class="panel">
         <div class="panel-head">
-          <div>
-            <p class="kicker">Secure access</p>
-            <h2>Admin login successful</h2>
-          </div>
+          <div><p class="kicker">Recent activity</p><h2>Latest submissions</h2></div>
+          <button class="secondary" type="button" data-refresh="dashboard">Refresh</button>
         </div>
-        <p id="dashboardMessage">Loading administrator data…</p>
+        <div id="recentActivity" class="activity-list"><div class="empty">Loading…</div></div>
+      </div>
+    </section>
+
+    <section class="admin-view" data-panel="enquiries">
+      <div class="panel">
+        <div class="panel-head">
+          <div><p class="kicker">Manpower</p><h2>Enquiries</h2></div>
+          <button class="secondary" type="button" data-refresh="enquiries">Refresh</button>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Date</th><th>Name</th><th>Company</th><th>Contact</th><th>Requirement</th><th>Status</th><th></th></tr></thead>
+            <tbody id="enquiryRows"><tr><td colspan="7">Open this section to load enquiries.</td></tr></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <section class="admin-view" data-panel="applications">
+      <div class="panel">
+        <div class="panel-head">
+          <div><p class="kicker">Recruitment</p><h2>Applications</h2></div>
+          <button class="secondary" type="button" data-refresh="applications">Refresh</button>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Date</th><th>Applicant</th><th>Trade</th><th>Contact</th><th>Status</th><th>CV</th><th></th></tr></thead>
+            <tbody id="applicationRows"><tr><td colspan="7">Open this section to load applications.</td></tr></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <section class="admin-view" data-panel="clients">
+      <div class="client-layout">
+        <div class="panel client-form">
+          <div class="panel-head"><div><p class="kicker">Website</p><h2 id="clientFormTitle">Add client</h2></div></div>
+          <input type="hidden" id="clientId">
+          <label>Company name<input id="clientName" maxlength="160"></label>
+          <label>Display order<input id="clientOrder" type="number" min="0" value="0"></label>
+          <label class="check"><input id="clientEnabled" type="checkbox" checked> Enabled on website</label>
+          <label>Logo<input id="clientLogo" type="file" accept="image/png,image/jpeg,image/webp,image/svg+xml"></label>
+          <p class="muted small">A logo is required for a new client. Existing clients can keep their current logo.</p>
+          <div class="button-row">
+            <button class="primary" id="clientSave" type="button">Save client</button>
+            <button class="secondary" id="clientCancel" type="button" hidden>Cancel edit</button>
+          </div>
+          <p class="status" id="clientStatus" role="status"></p>
+        </div>
+        <div class="panel">
+          <div class="panel-head">
+            <div><p class="kicker">Display order</p><h2>Clients</h2></div>
+            <button class="secondary" type="button" data-refresh="clients">Refresh</button>
+          </div>
+          <div id="clientRows" class="client-list"><div class="empty">Open this section to load clients.</div></div>
+        </div>
       </div>
     </section>
   </main>
 </div>
+
+<dialog id="detailDialog">
+  <button class="dialog-close" id="dialogClose" type="button" aria-label="Close">×</button>
+  <div id="dialogContent"></div>
+</dialog>
 
 <script>
 (function () {
@@ -68,129 +133,493 @@
 
   var SUPABASE_URL = 'https://sqeyjhedqufykqduvtcb.supabase.co';
   var API_KEY = 'sb_publishable_goNXOTguYIcivBwulGSf_g_KhY2iRYK';
+  var session = null;
+  var clients = [];
 
-  var loginView = document.getElementById('loginView');
-  var adminView = document.getElementById('adminView');
-  var emailInput = document.getElementById('loginEmail');
-  var passwordInput = document.getElementById('loginPassword');
-  var loginBtn = document.getElementById('loginBtn');
-  var loginStatus = document.getElementById('loginStatus');
-  var adminEmail = document.getElementById('adminEmail');
-  var logoutBtn = document.getElementById('logoutBtn');
-  var dashboardMessage = document.getElementById('dashboardMessage');
-
-  function setStatus(message, isError) {
-    loginStatus.textContent = message;
-    loginStatus.className = isError ? 'status is-error' : 'status';
+  function $(selector) { return document.querySelector(selector); }
+  function all(selector) { return Array.prototype.slice.call(document.querySelectorAll(selector)); }
+  function esc(value) {
+    return String(value == null ? '' : value).replace(/[&<>"']/g, function (c) {
+      return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];
+    });
   }
-
+  function fmt(value) {
+    if (!value) return '—';
+    try {
+      return new Intl.DateTimeFormat('en-AE',{dateStyle:'medium',timeStyle:'short'}).format(new Date(value));
+    } catch (e) {
+      return value;
+    }
+  }
+  function setLoginStatus(message, isError) {
+    var el = $('#loginStatus');
+    el.textContent = message;
+    el.className = isError ? 'status is-error' : 'status';
+  }
   function saveSession(data) {
-    localStorage.setItem('prtc_admin_session', JSON.stringify(data));
+    session = data;
+    if (data) localStorage.setItem('prtc_admin_session', JSON.stringify(data));
+    else localStorage.removeItem('prtc_admin_session');
+  }
+  function storedSession() {
+    try { return JSON.parse(localStorage.getItem('prtc_admin_session') || 'null'); }
+    catch (e) { return null; }
+  }
+  function headers(extra) {
+    var h = {'apikey': API_KEY};
+    if (session && session.access_token) h.Authorization = 'Bearer ' + session.access_token;
+    if (extra) Object.keys(extra).forEach(function (k) { h[k] = extra[k]; });
+    return h;
+  }
+  function refreshSession() {
+    if (!session || !session.refresh_token) return Promise.resolve(false);
+    return fetch(SUPABASE_URL + '/auth/v1/token?grant_type=refresh_token', {
+      method:'POST',
+      headers:{'apikey':API_KEY,'Content-Type':'application/json'},
+      body:JSON.stringify({refresh_token:session.refresh_token})
+    }).then(function (res) {
+      if (!res.ok) {
+        saveSession(null);
+        return false;
+      }
+      return res.json().then(function (data) {
+        saveSession(data);
+        return true;
+      });
+    }).catch(function () {
+      return false;
+    });
+  }
+  function api(path, options, retry) {
+    options = options || {};
+    if (retry === undefined) retry = true;
+    var opts = {};
+    Object.keys(options).forEach(function (k) { opts[k] = options[k]; });
+    opts.headers = headers(options.headers || {});
+    return fetch(SUPABASE_URL + path, opts).then(function (res) {
+      if (res.status === 401 && retry) {
+        return refreshSession().then(function (ok) {
+          if (ok) return api(path, options, false);
+          return res;
+        });
+      }
+      return res;
+    });
+  }
+  function readError(res, fallback) {
+    return res.json().then(function (j) {
+      return new Error(j.message || j.msg || j.error || j.error_description || fallback);
+    }).catch(function () {
+      return new Error(fallback);
+    });
+  }
+  function rest(table, query, options) {
+    query = query || '';
+    options = options || {};
+    var opts = {};
+    Object.keys(options).forEach(function (k) { opts[k] = options[k]; });
+    var customHeaders = {'Content-Type':'application/json','Prefer':'return=representation'};
+    if (options.headers) Object.keys(options.headers).forEach(function (k) { customHeaders[k] = options.headers[k]; });
+    opts.headers = customHeaders;
+    return api('/rest/v1/' + table + (query ? '?' + query : ''), opts).then(function (res) {
+      if (!res.ok) {
+        return readError(res, 'Request failed.').then(function (err) { throw err; });
+      }
+      return res.text().then(function (text) { return text ? JSON.parse(text) : null; });
+    });
   }
 
-  function clearSession() {
-    localStorage.removeItem('prtc_admin_session');
+  function showShell(data) {
+    $('#loginView').hidden = true;
+    $('#adminView').hidden = false;
+    $('#adminEmail').textContent = data && data.user && data.user.email ? data.user.email : 'Admin';
   }
-
-  function showDashboard(data) {
-    loginView.hidden = true;
-    adminView.hidden = false;
-    adminEmail.textContent = data.user && data.user.email ? data.user.email : 'Admin';
-    dashboardMessage.textContent = 'You are signed in as an approved PRTC administrator.';
+  function showLogin(message) {
+    $('#adminView').hidden = true;
+    $('#loginView').hidden = false;
+    if (message) setLoginStatus(message, true);
   }
-
   function verifyAdmin(data) {
-    var userId = data.user && data.user.id ? data.user.id : '';
-    return fetch(
-      SUPABASE_URL + '/rest/v1/admin_users?select=role&user_id=eq.' + encodeURIComponent(userId),
-      {
-        method: 'GET',
-        headers: {
-          'apikey': API_KEY,
-          'Authorization': 'Bearer ' + data.access_token
-        }
-      }
-    ).then(function (response) {
-      if (!response.ok) {
-        throw new Error('Could not verify administrator access.');
-      }
-      return response.json();
-    }).then(function (rows) {
+    if (!data || !data.user || !data.user.id) return Promise.reject(new Error('Invalid session.'));
+    return rest('admin_users','select=role&user_id=eq.' + encodeURIComponent(data.user.id),{method:'GET'}).then(function (rows) {
       if (!rows || !rows.length || rows[0].role !== 'admin') {
         throw new Error('This account is not approved as a PRTC administrator.');
       }
-      return data;
+      return true;
     });
   }
 
   function login() {
-    var email = emailInput.value.trim();
-    var password = passwordInput.value;
+    var email = $('#loginEmail').value.trim();
+    var password = $('#loginPassword').value;
+    var btn = $('#loginBtn');
 
     if (!email || !password) {
-      setStatus('Enter your email and password.', true);
+      setLoginStatus('Enter your email and password.', true);
       return;
     }
 
-    loginBtn.disabled = true;
-    setStatus('Signing in…', false);
+    btn.disabled = true;
+    setLoginStatus('Signing in…', false);
 
     fetch(SUPABASE_URL + '/auth/v1/token?grant_type=password', {
-      method: 'POST',
-      headers: {
-        'apikey': API_KEY,
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({
-        email: email,
-        password: password
-      })
+      method:'POST',
+      headers:{'apikey':API_KEY,'Content-Type':'application/json'},
+      body:JSON.stringify({email:email,password:password})
     })
-    .then(function (response) {
-      return response.json().then(function (data) {
-        if (!response.ok) {
-          throw new Error(data.msg || data.message || data.error_description || 'Sign in failed.');
-        }
+    .then(function (res) {
+      return res.json().then(function (data) {
+        if (!res.ok) throw new Error(data.msg || data.message || data.error_description || 'Sign in failed.');
         return data;
       });
     })
-    .then(verifyAdmin)
     .then(function (data) {
       saveSession(data);
-      setStatus('Signed in.', false);
-      showDashboard(data);
+
+      // Open the dashboard immediately after the password has been accepted.
+      showShell(data);
+      $('#recentActivity').innerHTML = '<div class="empty">Verifying administrator access…</div>';
+
+      return verifyAdmin(data).then(function () {
+        loadDashboard();
+      });
     })
-    .catch(function (error) {
-      clearSession();
-      setStatus(error && error.message ? error.message : 'Sign in failed.', true);
+    .catch(function (err) {
+      saveSession(null);
+      showLogin(err && err.message ? err.message : 'Sign in failed.');
     })
-    .finally(function () {
-      loginBtn.disabled = false;
+    .then(function () {
+      btn.disabled = false;
     });
   }
 
-  loginBtn.addEventListener('click', login);
-  passwordInput.addEventListener('keydown', function (event) {
-    if (event.key === 'Enter') {
-      event.preventDefault();
+  $('#loginBtn').addEventListener('click', login);
+  $('#loginPassword').addEventListener('keydown', function (e) {
+    if (e.key === 'Enter') {
+      e.preventDefault();
       login();
     }
   });
 
-  logoutBtn.addEventListener('click', function () {
-    clearSession();
-    location.reload();
+  $('#logoutBtn').addEventListener('click', function () {
+    var old = session;
+    saveSession(null);
+    showLogin();
+    setLoginStatus('Ready to sign in.', false);
+    if (old && old.access_token) {
+      fetch(SUPABASE_URL + '/auth/v1/logout', {
+        method:'POST',
+        headers:{'apikey':API_KEY,'Authorization':'Bearer ' + old.access_token}
+      }).catch(function () {});
+    }
   });
 
-  try {
-    var stored = JSON.parse(localStorage.getItem('prtc_admin_session') || 'null');
-    if (stored && stored.access_token && stored.user) {
-      verifyAdmin(stored).then(showDashboard).catch(function () {
-        clearSession();
+  var titles = {dashboard:'Dashboard',enquiries:'Enquiries',applications:'Applications',clients:'Clients'};
+  all('.nav-btn').forEach(function (btn) {
+    btn.addEventListener('click', function () {
+      var view = btn.getAttribute('data-view');
+      all('.nav-btn').forEach(function (b) { b.classList.toggle('is-active', b === btn); });
+      all('.admin-view').forEach(function (panel) { panel.classList.toggle('is-active', panel.getAttribute('data-panel') === view); });
+      $('#viewTitle').textContent = titles[view];
+      $('#sidebar').classList.remove('is-open');
+      if (view === 'dashboard') loadDashboard();
+      if (view === 'enquiries') loadEnquiries();
+      if (view === 'applications') loadApplications();
+      if (view === 'clients') loadClients();
+    });
+  });
+  $('#mobileNavBtn').addEventListener('click', function () { $('#sidebar').classList.toggle('is-open'); });
+  all('[data-refresh]').forEach(function (btn) {
+    btn.addEventListener('click', function () {
+      var view = btn.getAttribute('data-refresh');
+      if (view === 'dashboard') loadDashboard();
+      if (view === 'enquiries') loadEnquiries();
+      if (view === 'applications') loadApplications();
+      if (view === 'clients') loadClients();
+    });
+  });
+
+  function fetchCount(table, status) {
+    var q = 'select=id';
+    if (status) q += '&status=eq.' + encodeURIComponent(status);
+    return api('/rest/v1/' + table + '?' + q, {method:'HEAD',headers:{'Prefer':'count=exact'}}).then(function (res) {
+      if (!res.ok) throw new Error('Could not load dashboard totals.');
+      var range = res.headers.get('content-range') || '0/0';
+      return Number(range.split('/')[1]) || 0;
+    });
+  }
+
+  function loadDashboard() {
+    $('#recentActivity').innerHTML = '<div class="empty">Loading…</div>';
+    return Promise.all([
+      fetchCount('enquiries','New'),
+      fetchCount('enquiries'),
+      fetchCount('applications','New'),
+      fetchCount('applications'),
+      api('/rest/v1/clients?select=id&enabled=eq.true',{method:'HEAD',headers:{'Prefer':'count=exact'}}).then(function (res) {
+        if (!res.ok) throw new Error('Could not load client count.');
+        return Number((res.headers.get('content-range') || '0/0').split('/')[1]) || 0;
+      })
+    ]).then(function (counts) {
+      var labels = ['New enquiries','Total enquiries','New applications','Total applications','Active clients'];
+      $('#dashboardStats').innerHTML = labels.map(function (label, i) {
+        return '<div class="stat-card"><span>' + esc(label) + '</span><strong>' + counts[i] + '</strong></div>';
+      }).join('');
+
+      return Promise.all([
+        rest('enquiries','select=id,name,company,status,created_at&order=created_at.desc&limit=5',{method:'GET'}),
+        rest('applications','select=id,name,trade,status,created_at&order=created_at.desc&limit=5',{method:'GET'})
+      ]);
+    }).then(function (sets) {
+      var items = [];
+      (sets[0] || []).forEach(function (x) {
+        items.push({name:x.name,type:'Enquiry',label:x.company || x.name,status:x.status,created_at:x.created_at});
+      });
+      (sets[1] || []).forEach(function (x) {
+        items.push({name:x.name,type:'Application',label:x.trade || x.name,status:x.status,created_at:x.created_at});
+      });
+      items.sort(function (a,b) { return new Date(b.created_at) - new Date(a.created_at); });
+      items = items.slice(0,8);
+
+      $('#recentActivity').innerHTML = items.length ? items.map(function (x) {
+        return '<div class="activity-item"><div><strong>' + esc(x.name) + '</strong><span>' + esc(x.type) + ' · ' + esc(x.label) + '</span></div><div><strong>' + esc(x.status) + '</strong><span>' + fmt(x.created_at) + '</span></div></div>';
+      }).join('') : '<div class="empty">No submissions yet.</div>';
+    }).catch(function (err) {
+      $('#recentActivity').innerHTML = '<div class="empty">' + esc(err.message || 'Could not load dashboard.') + '</div>';
+    });
+  }
+
+  function loadEnquiries() {
+    $('#enquiryRows').innerHTML = '<tr><td colspan="7">Loading…</td></tr>';
+    rest('enquiries','select=*&order=created_at.desc',{method:'GET'}).then(function (data) {
+      data = data || [];
+      $('#enquiryRows').innerHTML = data.length ? data.map(function (x) {
+        var opts = ['New','Contacted','Closed'].map(function (st) {
+          return '<option' + (x.status === st ? ' selected' : '') + '>' + st + '</option>';
+        }).join('');
+        return '<tr><td>' + fmt(x.created_at) + '</td><td><strong>' + esc(x.name) + '</strong></td><td>' + esc(x.company || '—') + '</td><td>' + esc(x.phone) + '<br><span class="muted">' + esc(x.email) + '</span></td><td>' + esc(x.trade || '—') + '</td><td><select data-enquiry-status="' + x.id + '">' + opts + '</select></td><td><button class="link-btn" type="button" data-enquiry-view="' + x.id + '">View</button></td></tr>';
+      }).join('') : '<tr><td colspan="7">No enquiries yet.</td></tr>';
+
+      all('[data-enquiry-status]').forEach(function (el) {
+        el.addEventListener('change', function () { updateStatus('enquiries', el.getAttribute('data-enquiry-status'), el.value); });
+      });
+      all('[data-enquiry-view]').forEach(function (el) {
+        el.addEventListener('click', function () {
+          var id = el.getAttribute('data-enquiry-view');
+          var item = data.filter(function (x) { return x.id === id; })[0];
+          showDetail(item,'Enquiry');
+        });
+      });
+    }).catch(function (err) {
+      $('#enquiryRows').innerHTML = '<tr><td colspan="7">' + esc(err.message) + '</td></tr>';
+    });
+  }
+
+  function loadApplications() {
+    $('#applicationRows').innerHTML = '<tr><td colspan="7">Loading…</td></tr>';
+    rest('applications','select=*&order=created_at.desc',{method:'GET'}).then(function (data) {
+      data = data || [];
+      $('#applicationRows').innerHTML = data.length ? data.map(function (x) {
+        var opts = ['New','Reviewed','Shortlisted','Rejected'].map(function (st) {
+          return '<option' + (x.status === st ? ' selected' : '') + '>' + st + '</option>';
+        }).join('');
+        return '<tr><td>' + fmt(x.created_at) + '</td><td><strong>' + esc(x.name) + '</strong></td><td>' + esc(x.trade) + '</td><td>' + esc(x.phone) + '<br><span class="muted">' + esc(x.email) + '</span></td><td><select data-app-status="' + x.id + '">' + opts + '</select></td><td><button class="link-btn" type="button" data-cv="' + x.id + '">Download</button></td><td><button class="link-btn" type="button" data-app-view="' + x.id + '">View</button></td></tr>';
+      }).join('') : '<tr><td colspan="7">No applications yet.</td></tr>';
+
+      all('[data-app-status]').forEach(function (el) {
+        el.addEventListener('change', function () { updateStatus('applications', el.getAttribute('data-app-status'), el.value); });
+      });
+      all('[data-app-view]').forEach(function (el) {
+        el.addEventListener('click', function () {
+          var id = el.getAttribute('data-app-view');
+          var item = data.filter(function (x) { return x.id === id; })[0];
+          showDetail(item,'Application');
+        });
+      });
+      all('[data-cv]').forEach(function (el) {
+        el.addEventListener('click', function () {
+          var id = el.getAttribute('data-cv');
+          var item = data.filter(function (x) { return x.id === id; })[0];
+          downloadCv(item);
+        });
+      });
+    }).catch(function (err) {
+      $('#applicationRows').innerHTML = '<tr><td colspan="7">' + esc(err.message) + '</td></tr>';
+    });
+  }
+
+  function updateStatus(table,id,status) {
+    rest(table,'id=eq.' + encodeURIComponent(id),{method:'PATCH',body:JSON.stringify({status:status})}).catch(function (err) {
+      alert(err.message);
+    });
+  }
+
+  function showDetail(item,type) {
+    if (!item) return;
+    var skip = {id:true,cv_path:true,cv_mime_type:true,cv_size_bytes:true};
+    var rows = Object.keys(item).filter(function (k) { return !skip[k]; }).map(function (k) {
+      var value = item[k];
+      if (k.indexOf('created_at') >= 0 || k.indexOf('updated_at') >= 0) value = fmt(value);
+      return '<dt>' + esc(k.replace(/_/g,' ')) + '</dt><dd>' + esc(value == null || value === '' ? '—' : value) + '</dd>';
+    }).join('');
+    $('#dialogContent').innerHTML = '<p class="kicker">' + esc(type) + '</p><h2>' + esc(item.name) + '</h2><dl class="detail-grid">' + rows + '</dl>';
+    $('#detailDialog').showModal();
+  }
+  $('#dialogClose').addEventListener('click', function () { $('#detailDialog').close(); });
+  $('#detailDialog').addEventListener('click', function (e) { if (e.target === $('#detailDialog')) $('#detailDialog').close(); });
+
+  function downloadCv(app) {
+    if (!app || !app.cv_path) return;
+    var path = app.cv_path.split('/').map(encodeURIComponent).join('/');
+    api('/storage/v1/object/authenticated/cv-private/' + path,{method:'GET'}).then(function (res) {
+      if (!res.ok) throw new Error('Could not download CV.');
+      return res.blob();
+    }).then(function (blob) {
+      var url = window.URL.createObjectURL(blob);
+      var a = document.createElement('a');
+      a.href = url;
+      a.download = app.cv_original_name || 'CV';
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      setTimeout(function () { window.URL.revokeObjectURL(url); },1000);
+    }).catch(function (err) {
+      alert(err.message);
+    });
+  }
+
+  function loadClients() {
+    $('#clientRows').innerHTML = '<div class="empty">Loading…</div>';
+    rest('clients','select=*&order=display_order.asc,name.asc',{method:'GET'}).then(function (data) {
+      clients = data || [];
+      $('#clientRows').innerHTML = clients.length ? clients.map(function (x) {
+        return '<div class="client-item"><img src="' + esc(x.logo_path) + '" alt=""><div class="client-meta"><strong>' + esc(x.name) + '</strong><span>Order ' + x.display_order + ' · ' + (x.enabled ? 'Enabled' : 'Hidden') + '</span></div><div class="client-actions"><button class="secondary" type="button" data-edit-client="' + x.id + '">Edit</button><button class="link-btn danger" type="button" data-delete-client="' + x.id + '">Delete</button></div></div>';
+      }).join('') : '<div class="empty">No clients.</div>';
+
+      all('[data-edit-client]').forEach(function (btn) {
+        btn.addEventListener('click', function () { editClient(btn.getAttribute('data-edit-client')); });
+      });
+      all('[data-delete-client]').forEach(function (btn) {
+        btn.addEventListener('click', function () { deleteClient(btn.getAttribute('data-delete-client')); });
+      });
+    }).catch(function (err) {
+      $('#clientRows').innerHTML = '<div class="empty">' + esc(err.message) + '</div>';
+    });
+  }
+
+  function editClient(id) {
+    var item = clients.filter(function (x) { return x.id === id; })[0];
+    if (!item) return;
+    $('#clientId').value = item.id;
+    $('#clientName').value = item.name;
+    $('#clientOrder').value = item.display_order;
+    $('#clientEnabled').checked = item.enabled;
+    $('#clientFormTitle').textContent = 'Edit client';
+    $('#clientCancel').hidden = false;
+    $('#clientStatus').textContent = '';
+  }
+
+  function resetClientForm() {
+    $('#clientId').value = '';
+    $('#clientName').value = '';
+    $('#clientOrder').value = '0';
+    $('#clientEnabled').checked = true;
+    $('#clientLogo').value = '';
+    $('#clientFormTitle').textContent = 'Add client';
+    $('#clientCancel').hidden = true;
+    $('#clientStatus').textContent = '';
+  }
+
+  $('#clientCancel').addEventListener('click', resetClientForm);
+
+  $('#clientSave').addEventListener('click', function () {
+    var status = $('#clientStatus');
+    var id = $('#clientId').value;
+    var name = $('#clientName').value.trim();
+    var order = Number($('#clientOrder').value) || 0;
+    var enabled = $('#clientEnabled').checked;
+    var file = $('#clientLogo').files && $('#clientLogo').files[0];
+    var current = id ? clients.filter(function (x) { return x.id === id; })[0] : null;
+    var logoPath = current ? current.logo_path : '';
+
+    status.className = 'status';
+    status.textContent = 'Saving…';
+
+    if (!name) {
+      status.textContent = 'Enter a company name.';
+      status.className = 'status is-error';
+      return;
+    }
+    if (!id && !file) {
+      status.textContent = 'Please choose a logo.';
+      status.className = 'status is-error';
+      return;
+    }
+    if (file && file.size > 5 * 1024 * 1024) {
+      status.textContent = 'Logo must be 5 MB or smaller.';
+      status.className = 'status is-error';
+      return;
+    }
+
+    function saveRecord() {
+      var payload = {name:name,display_order:order,enabled:enabled,logo_path:logoPath};
+      var p = id
+        ? rest('clients','id=eq.' + encodeURIComponent(id),{method:'PATCH',body:JSON.stringify(payload)})
+        : rest('clients','',{method:'POST',body:JSON.stringify(payload)});
+      return p.then(function () {
+        status.textContent = 'Saved.';
+        resetClientForm();
+        loadClients();
       });
     }
-  } catch (e) {
-    clearSession();
+
+    if (!file) {
+      saveRecord().catch(function (err) {
+        status.textContent = err.message;
+        status.className = 'status is-error';
+      });
+      return;
+    }
+
+    var ext = (file.name.split('.').pop() || 'png').toLowerCase();
+    var objectPath = (window.crypto && crypto.randomUUID ? crypto.randomUUID() : String(Date.now())) + '.' + ext;
+    api('/storage/v1/object/client-logos/' + encodeURIComponent(objectPath),{
+      method:'POST',
+      headers:{'Content-Type':file.type,'x-upsert':'false'},
+      body:file
+    }).then(function (res) {
+      if (!res.ok) throw new Error('Logo upload failed.');
+      logoPath = SUPABASE_URL + '/storage/v1/object/public/client-logos/' + encodeURIComponent(objectPath);
+      return saveRecord();
+    }).catch(function (err) {
+      status.textContent = err.message;
+      status.className = 'status is-error';
+    });
+  });
+
+  function deleteClient(id) {
+    var item = clients.filter(function (x) { return x.id === id; })[0];
+    if (!item || !confirm('Delete ' + item.name + '?')) return;
+    rest('clients','id=eq.' + encodeURIComponent(id),{method:'DELETE'}).then(loadClients).catch(function (err) {
+      alert(err.message);
+    });
+  }
+
+  session = storedSession();
+  if (session && session.access_token && session.user) {
+    // Returning admins see the dashboard instantly, then the stored session is checked.
+    showShell(session);
+    $('#recentActivity').innerHTML = '<div class="empty">Checking session…</div>';
+    verifyAdmin(session).then(loadDashboard).catch(function () {
+      return refreshSession().then(function (ok) {
+        if (!ok) throw new Error('Your session has expired. Please sign in again.');
+        showShell(session);
+        return verifyAdmin(session).then(loadDashboard);
+      });
+    }).catch(function (err) {
+      saveSession(null);
+      showLogin(err.message || 'Please sign in again.');
+    });
   }
 })();
 </script>
