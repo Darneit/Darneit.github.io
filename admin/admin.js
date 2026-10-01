@@ -1,8 +1,8 @@
 (() => {
 'use strict';
-const URL='https://sqeyjhedqufykqduvtcb.supabase.co';
+const SUPABASE_URL='https://sqeyjhedqufykqduvtcb.supabase.co';
 const KEY='sb_publishable_goNXOTguYIcivBwulGSf_g_KhY2iRYK';
-const sb=window.supabase.createClient(URL,KEY);
+const sb=window.supabase.createClient(SUPABASE_URL,KEY);
 const $=s=>document.querySelector(s);
 const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const fmt=d=>d?new Intl.DateTimeFormat('en-AE',{dateStyle:'medium',timeStyle:'short'}).format(new Date(d)):'—';
@@ -121,7 +121,7 @@ async function downloadCv(app){
  if(!app?.cv_path)return;
  const {data,error}=await sb.storage.from('cv-private').download(app.cv_path);
  if(error){alert(error.message);return}
- const url=URL.createObjectURL(data), a=document.createElement('a');a.href=url;a.download=app.cv_original_name||'CV';a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);
+ const url=window.URL.createObjectURL(data), a=document.createElement('a');a.href=url;a.download=app.cv_original_name||'CV';a.click();setTimeout(()=>window.URL.revokeObjectURL(url),1000);
 }
 let clients=[];
 async function loadClients(){
