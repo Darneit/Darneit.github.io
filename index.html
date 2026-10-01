@@ -733,55 +733,65 @@
 <span>
            Company name *
           </span>
-<input autocomplete="organization" name="company" placeholder="Company name" required="" type="text"/>
+<input autocomplete="organization" maxlength="160" name="company" placeholder="Company name" required="" type="text"/>
 </label>
 <label class="form-field">
 <span>
            Contact person *
           </span>
-<input autocomplete="name" name="name" placeholder="Contact person" required="" type="text"/>
+<input autocomplete="name" maxlength="120" name="name" placeholder="Contact person" required="" type="text"/>
 </label>
 <label class="form-field">
 <span>
            Phone / WhatsApp *
           </span>
-<input autocomplete="tel" name="phone" placeholder="Phone / WhatsApp" required="" type="tel"/>
+<input autocomplete="tel" inputmode="numeric" maxlength="15" minlength="7" name="phone" pattern="[0-9]{7,15}" placeholder="Phone / WhatsApp (numbers only)" required="" type="tel"/>
 </label>
 <label class="form-field">
 <span>
            Email *
           </span>
-<input autocomplete="email" name="email" placeholder="Email" required="" type="email"/>
+<input autocomplete="email" maxlength="180" name="email" placeholder="Email" required="" type="email"/>
 </label>
 <label class="form-field">
 <span>
            Project location
           </span>
-<input name="project_location" placeholder="Project location" type="text"/>
+<input maxlength="160" name="project_location" placeholder="Project location" type="text"/>
 </label>
 <label class="form-field">
 <span>
            Required trade / service
           </span>
-<input name="trade" placeholder="Required trade / service" type="text"/>
+<select name="trade" required=""><option value="" selected disabled>Select a service</option>
+<option value="Piling &amp; ground works">Piling &amp; ground works</option>
+<option value="Foundation works">Foundation works</option>
+<option value="Masonry works">Masonry works</option>
+<option value="Structural steel &amp; roofing">Structural steel &amp; roofing</option>
+<option value="Scaffolding">Scaffolding</option>
+<option value="Finishing works">Finishing works</option>
+<option value="MEP works">MEP works</option>
+<option value="Waterproofing &amp; insulation">Waterproofing &amp; insulation</option>
+<option value="Road works">Road works</option>
+<option value="Aluminium, glass &amp; metal">Aluminium, glass &amp; metal</option></select>
 </label>
 <label class="form-field">
 <span>
            Number of workers
           </span>
-<input min="0" name="workers" placeholder="Number of workers" type="number"/>
+<input inputmode="numeric" max="100000" min="1" name="workers" placeholder="Number of workers" step="1" type="number"/>
 </label>
 <label class="form-field">
 <span>
            Contract duration
           </span>
-<input name="duration" placeholder="Contract duration" type="text"/>
+<input maxlength="160" name="duration" placeholder="Contract duration (e.g. 6 months)" type="text"/>
 </label>
 <label class="form-field form-field-wide">
 <span>
            Additional information
           </span>
-<textarea name="message" placeholder="Tell us anything else we should know" rows="5"></textarea>
+<textarea maxlength="4000" name="message" placeholder="Tell us anything else we should know" rows="5"></textarea>
 </label>
 </div>
 <div class="form-submit-row">
