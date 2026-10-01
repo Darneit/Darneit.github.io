@@ -416,7 +416,7 @@
         var opts = ['New','Contacted','Closed'].map(function (st) {
           return '<option' + (x.status === st ? ' selected' : '') + '>' + st + '</option>';
         }).join('');
-        return '<tr><td>' + fmt(x.created_at) + '</td><td><strong>' + esc(x.name) + '</strong></td><td>' + esc(x.company || '—') + '</td><td>' + esc(x.phone) + '<br><span class="muted">' + esc(x.email) + '</span></td><td>' + esc(x.trade || '—') + '</td><td><select data-enquiry-status="' + x.id + '">' + opts + '</select></td><td><button class="link-btn" type="button" data-enquiry-view="' + x.id + '">View</button></td></tr>';
+        return '<tr><td>' + fmt(x.created_at) + '</td><td><strong>' + esc(x.name) + '</strong></td><td>' + esc(x.company || '—') + '</td><td>' + esc(x.phone) + '<br><span class="muted">' + esc(x.email) + '</span></td><td>' + esc(x.trade || '—') + '</td><td><select data-enquiry-status="' + x.id + '">' + opts + '</select></td><td><div class="row-actions"><button class="link-btn" type="button" data-enquiry-view="' + x.id + '">View</button><button class="link-btn danger" type="button" data-enquiry-delete="' + x.id + '">Delete</button></div></td></tr>';
       }).join('') : '<tr><td colspan="7">No enquiries yet.</td></tr>';
 
       all('[data-enquiry-status]').forEach(function (el) {
@@ -427,6 +427,22 @@
           var id = el.getAttribute('data-enquiry-view');
           var item = data.filter(function (x) { return x.id === id; })[0];
           showDetail(item,'Enquiry');
+        });
+      });
+      all('[data-enquiry-delete]').forEach(function (el) {
+        el.addEventListener('click', function () {
+          var id = el.getAttribute('data-enquiry-delete');
+          var item = data.filter(function (x) { return x.id === id; })[0];
+          if (!item || !confirm('Delete enquiry from ' + item.name + '?')) return;
+          el.disabled = true;
+          rest('enquiries','id=eq.' + encodeURIComponent(id),{method:'DELETE'}).then(function () {
+            enquiriesCache = null;
+            loadEnquiries();
+            loadDashboard();
+          }).catch(function (err) {
+            el.disabled = false;
+            alert(err.message);
+          });
         });
       });
     }).catch(function (err) {
@@ -444,7 +460,7 @@
         var opts = ['New','Reviewed','Shortlisted','Rejected'].map(function (st) {
           return '<option' + (x.status === st ? ' selected' : '') + '>' + st + '</option>';
         }).join('');
-        return '<tr><td>' + fmt(x.created_at) + '</td><td><strong>' + esc(x.name) + '</strong></td><td>' + esc(x.trade) + '</td><td>' + esc(x.phone) + '<br><span class="muted">' + esc(x.email) + '</span></td><td><select data-app-status="' + x.id + '">' + opts + '</select></td><td><button class="link-btn" type="button" data-cv="' + x.id + '">Download</button></td><td><button class="link-btn" type="button" data-app-view="' + x.id + '">View</button></td></tr>';
+        return '<tr><td>' + fmt(x.created_at) + '</td><td><strong>' + esc(x.name) + '</strong></td><td>' + esc(x.trade) + '</td><td>' + esc(x.phone) + '<br><span class="muted">' + esc(x.email) + '</span></td><td><select data-app-status="' + x.id + '">' + opts + '</select></td><td><button class="link-btn" type="button" data-cv="' + x.id + '">Download</button></td><td><div class="row-actions"><button class="link-btn" type="button" data-app-view="' + x.id + '">View</button><button class="link-btn danger" type="button" data-app-delete="' + x.id + '">Delete</button></div></td></tr>';
       }).join('') : '<tr><td colspan="7">No applications yet.</td></tr>';
 
       all('[data-app-status]').forEach(function (el) {
@@ -462,6 +478,30 @@
           var id = el.getAttribute('data-cv');
           var item = data.filter(function (x) { return x.id === id; })[0];
           downloadCv(item);
+        });
+      });
+      all('[data-app-delete]').forEach(function (el) {
+        el.addEventListener('click', function () {
+          var id = el.getAttribute('data-app-delete');
+          var item = data.filter(function (x) { return x.id === id; })[0];
+          if (!item || !confirm('Delete application from ' + item.name + '? This will also remove the stored CV.')) return;
+          el.disabled = true;
+
+          var deleteRecord = rest('applications','id=eq.' + encodeURIComponent(id),{method:'DELETE'});
+          var deleteCv = Promise.resolve();
+          if (item.cv_path) {
+            var path = item.cv_path.split('/').map(encodeURIComponent).join('/');
+            deleteCv = api('/storage/v1/object/cv-private/' + path,{method:'DELETE'}).catch(function(){});
+          }
+
+          Promise.all([deleteRecord, deleteCv]).then(function () {
+            applicationsCache = null;
+            loadApplications();
+            loadDashboard();
+          }).catch(function (err) {
+            el.disabled = false;
+            alert(err.message);
+          });
         });
       });
     }).catch(function (err) {
@@ -667,6 +707,32 @@
       alert(err.message);
     });
   }
+
+
+  var lastAutoRefresh = 0;
+  function refreshVisibleAdminView() {
+    if (!session || $('#adminView').hidden) return;
+    var now = Date.now();
+    if (now - lastAutoRefresh < 1500) return;
+    lastAutoRefresh = now;
+
+    var active = document.querySelector('.admin-view.is-active');
+    var view = active ? active.getAttribute('data-panel') : 'dashboard';
+
+    enquiriesCache = null;
+    applicationsCache = null;
+    clientsCache = null;
+
+    if (view === 'dashboard') loadDashboard();
+    if (view === 'enquiries') loadEnquiries();
+    if (view === 'applications') loadApplications();
+    if (view === 'clients') loadClients();
+  }
+
+  window.addEventListener('focus', refreshVisibleAdminView);
+  document.addEventListener('visibilitychange', function () {
+    if (!document.hidden) refreshVisibleAdminView();
+  });
 
   session = storedSession();
   if (session && session.access_token && session.user) {
