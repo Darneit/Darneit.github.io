@@ -8,37 +8,13 @@
   // Replace the old generated/placeholder photography with curated real Unsplash photography.
   // All selected photos are free to use under the Unsplash License.
   const realPhotoBase = {
-    // Home hero: active construction crew / rebar
+    // Only replace the images that looked the most artificial.
+    // The rest of the site's original photography is intentionally kept for variety.
     workers: 'https://images.unsplash.com/photo-1768926968986-a88590ce5025',
-
-    // Editorial/company imagery: supervisor/site perspective
-    handshake: 'https://images.unsplash.com/photo-1759922378275-32d7ca8bbcca',
-    construction: 'https://images.unsplash.com/photo-1762356731517-c2e7d273fd9c',
-
-    // Ground works / structural stages
-    foundation: 'https://images.unsplash.com/photo-1768677903496-becc4be07258',
-    piling: 'https://images.unsplash.com/photo-1768677903496-becc4be07258',
-    masonry: 'https://images.unsplash.com/photo-1758876734777-dcc6981f3671',
-
-    // Height / access work
-    scaffold: 'https://images.unsplash.com/photo-1722230428078-591f520674b0',
-
-    // Fabrication / technical work
-    steel: 'https://images.unsplash.com/photo-1683830932134-2d06849534eb',
-    mep: 'https://images.unsplash.com/photo-1762356731517-c2e7d273fd9c',
-
-    // Finishes and specialist work
-    finishing: 'https://images.unsplash.com/photo-1758876734777-dcc6981f3671',
-    waterproofing: 'https://images.unsplash.com/photo-1759922378275-32d7ca8bbcca',
-    roadworks: 'https://images.unsplash.com/photo-1758876734777-dcc6981f3671',
-
-    // Architectural / city-facing imagery
-    glass: 'https://images.unsplash.com/photo-1745750434535-5943ef2fd31a',
-    skyline: 'https://images.unsplash.com/photo-1745750434535-5943ef2fd31a',
-
-    // Generic worksite pages use a different wide construction image
     worksite: 'https://images.unsplash.com/photo-1762356731517-c2e7d273fd9c',
-    site: 'https://images.unsplash.com/photo-1759922378275-32d7ca8bbcca'
+    skyline: 'https://images.unsplash.com/photo-1745750434535-5943ef2fd31a',
+    glass: 'https://images.unsplash.com/photo-1745750434535-5943ef2fd31a',
+    scaffold: 'https://images.unsplash.com/photo-1722230428078-591f520674b0'
   };
   const realPhotoUrl = key => realPhotoBase[key] + '?auto=format&fit=crop&w=2400&q=88';
 
