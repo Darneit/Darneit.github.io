@@ -30,6 +30,7 @@
       <button class="nav-btn is-active" type="button" data-view="dashboard">Dashboard</button>
       <button class="nav-btn" type="button" data-view="enquiries">Enquiries</button>
       <button class="nav-btn" type="button" data-view="applications">Applications</button>
+      <button class="nav-btn" type="button" data-view="contacts">Contact Messages</button>
       <button class="nav-btn" type="button" data-view="clients">Clients</button>
     </nav>
     <div class="sidebar-bottom">
@@ -68,7 +69,7 @@
       <div class="panel">
         <div class="panel-head">
           <div><p class="kicker">Manpower</p><h2>Enquiries</h2></div>
-          <div class="panel-actions"><button class="secondary" type="button" id="exportEnquiriesPdf">Download PDF</button><button class="secondary" type="button" data-refresh="enquiries">Refresh</button></div>
+          <div class="panel-actions"><button class="secondary" type="button" id="exportEnquiriesPdf">Download All PDF</button><button class="secondary" type="button" data-refresh="enquiries">Refresh</button></div>
         </div>
         <div class="admin-filters">
           <input id="enquirySearch" type="search" placeholder="Search name, company, email, phone or trade">
@@ -88,7 +89,7 @@
       <div class="panel">
         <div class="panel-head">
           <div><p class="kicker">Recruitment</p><h2>Applications</h2></div>
-          <div class="panel-actions"><button class="secondary" type="button" id="exportApplicationsPdf">Download PDF</button><button class="secondary" type="button" data-refresh="applications">Refresh</button></div>
+          <div class="panel-actions"><button class="secondary" type="button" id="exportApplicationsPdf">Download All PDF</button><button class="secondary" type="button" data-refresh="applications">Refresh</button></div>
         </div>
         <div class="admin-filters">
           <input id="applicationSearch" type="search" placeholder="Search applicant, trade, email, phone or location">
@@ -99,6 +100,26 @@
           <table>
             <thead><tr><th>Date</th><th>Applicant</th><th>Trade</th><th>Contact</th><th>Status</th><th>CV</th><th></th></tr></thead>
             <tbody id="applicationRows"><tr><td colspan="7">Open this section to load applications.</td></tr></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <section class="admin-view" data-panel="contacts">
+      <div class="panel">
+        <div class="panel-head">
+          <div><p class="kicker">General enquiries</p><h2>Contact Messages</h2></div>
+          <div class="panel-actions"><button class="secondary" type="button" id="exportContactsPdf">Download All PDF</button><button class="secondary" type="button" data-refresh="contacts">Refresh</button></div>
+        </div>
+        <div class="admin-filters">
+          <input id="contactSearch" type="search" placeholder="Search name, company, email, phone or service">
+          <select id="contactStatusFilter"><option value="">All statuses</option><option>New</option><option>Replied</option><option>Closed</option></select>
+          <select id="contactSort"><option value="newest">Newest first</option><option value="oldest">Oldest first</option><option value="name">Name A–Z</option><option value="company">Company A–Z</option></select>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Date</th><th>Name</th><th>Company</th><th>Contact</th><th>Service</th><th>Status</th><th></th></tr></thead>
+            <tbody id="contactRows"><tr><td colspan="7">Open this section to load contact messages.</td></tr></tbody>
           </table>
         </div>
       </div>
@@ -123,7 +144,7 @@
         <div class="panel">
           <div class="panel-head">
             <div><p class="kicker">Display order</p><h2>Clients</h2></div>
-            <div class="panel-actions"><button class="secondary" type="button" id="exportClientsPdf">Download PDF</button><button class="secondary" type="button" data-refresh="clients">Refresh</button></div>
+            <div class="panel-actions"><button class="secondary" type="button" id="exportClientsPdf">Download All PDF</button><button class="secondary" type="button" data-refresh="clients">Refresh</button></div>
           </div>
           <div class="admin-filters admin-filters-clients">
             <input id="clientSearch" type="search" placeholder="Search clients">
@@ -153,6 +174,7 @@
   var clients = [];
   var enquiriesCache = null;
   var applicationsCache = null;
+  var contactsCache = null;
   var clientsCache = null;
   var currentDetailItem = null;
   var currentDetailType = '';
@@ -339,7 +361,7 @@
     }
   });
 
-  var titles = {dashboard:'Dashboard',enquiries:'Enquiries',applications:'Applications',clients:'Clients'};
+  var titles = {dashboard:'Dashboard',enquiries:'Enquiries',applications:'Applications',contacts:'Contact Messages',clients:'Clients'};
   all('.nav-btn').forEach(function (btn) {
     btn.addEventListener('click', function () {
       var view = btn.getAttribute('data-view');
@@ -350,6 +372,7 @@
       if (view === 'dashboard') loadDashboard(true);
       if (view === 'enquiries') loadEnquiries();
       if (view === 'applications') loadApplications();
+      if (view === 'contacts') loadContacts();
       if (view === 'clients') loadClients();
     });
   });
@@ -360,6 +383,7 @@
       if (view === 'dashboard') loadDashboard();
       if (view === 'enquiries') loadEnquiries();
       if (view === 'applications') loadApplications();
+      if (view === 'contacts') loadContacts();
       if (view === 'clients') loadClients();
     });
   });
@@ -422,6 +446,7 @@
     Promise.all([
       rest('enquiries','select=*&order=created_at.desc',{method:'GET'}).then(function (data) { enquiriesCache = data || []; }),
       rest('applications','select=*&order=created_at.desc',{method:'GET'}).then(function (data) { applicationsCache = data || []; }),
+      rest('contact_messages','select=*&order=created_at.desc',{method:'GET'}).then(function (data) { contactsCache = data || []; }),
       rest('clients','select=*&order=display_order.asc,name.asc',{method:'GET'}).then(function (data) {
         clientsCache = data || [];
         clients = clientsCache;
@@ -439,7 +464,7 @@
         var opts = ['New','Contacted','Closed'].map(function (st) {
           return '<option' + (x.status === st ? ' selected' : '') + '>' + st + '</option>';
         }).join('');
-        return '<tr><td>' + fmt(x.created_at) + '</td><td><strong>' + esc(x.name) + '</strong></td><td>' + esc(x.company || '—') + '</td><td>' + esc(x.phone) + '<br><span class="muted">' + esc(x.email) + '</span></td><td>' + esc(x.trade || '—') + '</td><td><select data-enquiry-status="' + x.id + '">' + opts + '</select></td><td><div class="row-actions"><button class="link-btn" type="button" data-enquiry-view="' + x.id + '">View</button><button class="link-btn danger" type="button" data-enquiry-delete="' + x.id + '">Delete</button></div></td></tr>';
+        return '<tr><td>' + fmt(x.created_at) + '</td><td><strong>' + esc(x.name) + '</strong></td><td>' + esc(x.company || '—') + '</td><td>' + esc(x.phone) + '<br><span class="muted">' + esc(x.email) + '</span></td><td>' + esc(x.trade || '—') + '</td><td><select data-enquiry-status="' + x.id + '">' + opts + '</select></td><td><div class="row-actions"><button class="link-btn" type="button" data-enquiry-view="' + x.id + '">View</button><button class="link-btn" type="button" data-enquiry-pdf="' + x.id + '">PDF</button><button class="link-btn danger" type="button" data-enquiry-delete="' + x.id + '">Delete</button></div></td></tr>';
       }).join('') : '<tr><td colspan="7">No enquiries yet.</td></tr>';
 
       all('[data-enquiry-status]').forEach(function (el) {
@@ -450,6 +475,13 @@
           var id = el.getAttribute('data-enquiry-view');
           var item = enquiriesCache.filter(function (x) { return x.id === id; })[0];
           showDetail(item,'Enquiry');
+        });
+      });
+      all('[data-enquiry-pdf]').forEach(function (el) {
+        el.addEventListener('click', function () {
+          var id = el.getAttribute('data-enquiry-pdf');
+          var item = enquiriesCache.filter(function (x) { return x.id === id; })[0];
+          if (item) downloadTextPdf('PRTC-Enquiry-' + (item.name || 'Record').replace(/[^a-z0-9]+/gi,'-') + '.pdf','PRTC Group - Enquiry',enquirySections([item]));
         });
       });
       all('[data-enquiry-delete]').forEach(function (el) {
@@ -484,7 +516,7 @@
         var opts = ['New','Reviewed','Shortlisted','Rejected'].map(function (st) {
           return '<option' + (x.status === st ? ' selected' : '') + '>' + st + '</option>';
         }).join('');
-        return '<tr><td>' + fmt(x.created_at) + '</td><td><strong>' + esc(x.name) + '</strong></td><td>' + esc(x.trade) + '</td><td>' + esc(x.phone) + '<br><span class="muted">' + esc(x.email) + '</span></td><td><select data-app-status="' + x.id + '">' + opts + '</select></td><td><button class="link-btn" type="button" data-cv="' + x.id + '">Download</button></td><td><div class="row-actions"><button class="link-btn" type="button" data-app-view="' + x.id + '">View</button><button class="link-btn danger" type="button" data-app-delete="' + x.id + '">Delete</button></div></td></tr>';
+        return '<tr><td>' + fmt(x.created_at) + '</td><td><strong>' + esc(x.name) + '</strong></td><td>' + esc(x.trade) + '</td><td>' + esc(x.phone) + '<br><span class="muted">' + esc(x.email) + '</span></td><td><select data-app-status="' + x.id + '">' + opts + '</select></td><td><button class="link-btn" type="button" data-cv="' + x.id + '">Download</button></td><td><div class="row-actions"><button class="link-btn" type="button" data-app-view="' + x.id + '">View</button><button class="link-btn" type="button" data-app-pdf="' + x.id + '">PDF</button><button class="link-btn danger" type="button" data-app-delete="' + x.id + '">Delete</button></div></td></tr>';
       }).join('') : '<tr><td colspan="7">No applications yet.</td></tr>';
 
       all('[data-app-status]').forEach(function (el) {
@@ -495,6 +527,13 @@
           var id = el.getAttribute('data-app-view');
           var item = applicationsCache.filter(function (x) { return x.id === id; })[0];
           showDetail(item,'Application');
+        });
+      });
+      all('[data-app-pdf]').forEach(function (el) {
+        el.addEventListener('click', function () {
+          var id = el.getAttribute('data-app-pdf');
+          var item = applicationsCache.filter(function (x) { return x.id === id; })[0];
+          if (item) downloadTextPdf('PRTC-Application-' + (item.name || 'Record').replace(/[^a-z0-9]+/gi,'-') + '.pdf','PRTC Group - Application',applicationSections([item]));
         });
       });
       all('[data-cv]').forEach(function (el) {
@@ -727,8 +766,95 @@
     ['applicationSearch','applicationStatusFilter','applicationSort'].forEach(function (id) {
       var el = $('#' + id); if (el) el.addEventListener(id.indexOf('Search') >= 0 ? 'input' : 'change', function () { if (applicationsCache) loadApplications(); });
     });
+    ['contactSearch','contactStatusFilter','contactSort'].forEach(function (id) {
+      var el = $('#' + id); if (el) el.addEventListener(id.indexOf('Search') >= 0 ? 'input' : 'change', function () { if (contactsCache) loadContacts(); });
+    });
     ['clientSearch','clientStatusFilter','clientSort'].forEach(function (id) {
       var el = $('#' + id); if (el) el.addEventListener(id.indexOf('Search') >= 0 ? 'input' : 'change', function () { if (clientsCache) loadClients(); });
+    });
+  }
+
+
+  function getFilteredContacts(data) {
+    var q = norm($('#contactSearch') ? $('#contactSearch').value : '');
+    var status = $('#contactStatusFilter') ? $('#contactStatusFilter').value : '';
+    var sort = $('#contactSort') ? $('#contactSort').value : 'newest';
+    var rows = (data || []).filter(function (x) {
+      var hay = [x.name,x.company,x.email,x.phone,x.trade,x.project_location,x.message].map(norm).join(' ');
+      return (!q || hay.indexOf(q) >= 0) && (!status || x.status === status);
+    }).slice();
+    rows.sort(function (a,b) {
+      if (sort === 'oldest') return new Date(a.created_at) - new Date(b.created_at);
+      if (sort === 'name') return String(a.name || '').localeCompare(String(b.name || ''));
+      if (sort === 'company') return String(a.company || '').localeCompare(String(b.company || ''));
+      return new Date(b.created_at) - new Date(a.created_at);
+    });
+    return rows;
+  }
+
+  function contactSections(rows) {
+    return rows.map(function (x,i) {
+      return {heading:(i+1) + '. ' + (x.name || 'Contact Message'), lines:[
+        'Company: ' + (x.company || '-'),
+        'Email: ' + (x.email || '-'),
+        'Phone / WhatsApp: ' + (x.phone || '-'),
+        'Project Location: ' + (x.project_location || '-'),
+        'Service / Requirement: ' + (x.trade || '-'),
+        'Status: ' + (x.status || '-'),
+        'Submitted: ' + fmt(x.created_at),
+        'Message: ' + (x.message || '-')
+      ]};
+    });
+  }
+
+  function loadContacts() {
+    if (!contactsCache) $('#contactRows').innerHTML = '<tr><td colspan="7">Loading…</td></tr>';
+    var source = contactsCache ? Promise.resolve(contactsCache) : rest('contact_messages','select=*&order=created_at.desc',{method:'GET'});
+    source.then(function (data) {
+      data = data || [];
+      contactsCache = data;
+      var visible = getFilteredContacts(data);
+      $('#contactRows').innerHTML = visible.length ? visible.map(function (x) {
+        var opts = ['New','Replied','Closed'].map(function (st) {
+          return '<option' + (x.status === st ? ' selected' : '') + '>' + st + '</option>';
+        }).join('');
+        return '<tr><td>' + fmt(x.created_at) + '</td><td><strong>' + esc(x.name) + '</strong></td><td>' + esc(x.company || '—') + '</td><td>' + esc(x.phone) + '<br><span class="muted">' + esc(x.email) + '</span></td><td>' + esc(x.trade || '—') + '</td><td><select data-contact-status="' + x.id + '">' + opts + '</select></td><td><div class="row-actions"><button class="link-btn" type="button" data-contact-view="' + x.id + '">View</button><button class="link-btn" type="button" data-contact-pdf="' + x.id + '">PDF</button><button class="link-btn danger" type="button" data-contact-delete="' + x.id + '">Delete</button></div></td></tr>';
+      }).join('') : '<tr><td colspan="7">No contact messages yet.</td></tr>';
+
+      all('[data-contact-status]').forEach(function (el) {
+        el.addEventListener('change', function () { updateStatus('contact_messages', el.getAttribute('data-contact-status'), el.value); });
+      });
+      all('[data-contact-view]').forEach(function (el) {
+        el.addEventListener('click', function () {
+          var id = el.getAttribute('data-contact-view');
+          var item = contactsCache.filter(function (x) { return x.id === id; })[0];
+          showDetail(item,'Contact Message');
+        });
+      });
+      all('[data-contact-pdf]').forEach(function (el) {
+        el.addEventListener('click', function () {
+          var id = el.getAttribute('data-contact-pdf');
+          var item = contactsCache.filter(function (x) { return x.id === id; })[0];
+          if (item) downloadTextPdf('PRTC-Contact-' + (item.name || 'Record').replace(/[^a-z0-9]+/gi,'-') + '.pdf','PRTC Group - Contact Message',contactSections([item]));
+        });
+      });
+      all('[data-contact-delete]').forEach(function (el) {
+        el.addEventListener('click', function () {
+          var id = el.getAttribute('data-contact-delete');
+          var item = contactsCache.filter(function (x) { return x.id === id; })[0];
+          if (!item || !confirm('Delete contact message from ' + item.name + '?')) return;
+          el.disabled = true;
+          rest('contact_messages','id=eq.' + encodeURIComponent(id),{method:'DELETE'}).then(function () {
+            contactsCache = (contactsCache || []).filter(function (x) { return x.id !== id; });
+            loadContacts();
+          }).catch(function (err) {
+            el.disabled = false;
+            alert(err.message);
+          });
+        });
+      });
+    }).catch(function (err) {
+      $('#contactRows').innerHTML = '<tr><td colspan="7">' + esc(err.message) + '</td></tr>';
     });
   }
 
@@ -736,6 +862,7 @@
     rest(table,'id=eq.' + encodeURIComponent(id),{method:'PATCH',body:JSON.stringify({status:status})}).then(function () {
       if (table === 'enquiries') enquiriesCache = null;
       if (table === 'applications') applicationsCache = null;
+      if (table === 'contact_messages') contactsCache = null;
     }).catch(function (err) {
       alert(err.message);
     });
@@ -767,7 +894,9 @@
 
     var order = type === 'Enquiry'
       ? ['name','company','email','phone','project_location','trade','workers','message','status','created_at','updated_at']
-      : ['name','email','phone','nationality','location','trade','experience','employment_status','message','status','cv_original_name','created_at','updated_at'];
+      : type === 'Contact Message'
+        ? ['name','company','email','phone','project_location','trade','message','status','created_at','updated_at']
+        : ['name','email','phone','nationality','location','trade','experience','employment_status','message','status','cv_original_name','created_at','updated_at'];
 
     var rows = order.filter(function (key) {
       return Object.prototype.hasOwnProperty.call(item,key);
@@ -818,11 +947,19 @@
       clientsCache = clients;
       var visible = getFilteredClients(clients);
       $('#clientRows').innerHTML = visible.length ? visible.map(function (x) {
-        return '<div class="client-item"><img src="' + esc(x.logo_path) + '" alt=""><div class="client-meta"><strong>' + esc(x.name) + '</strong><span>Order ' + x.display_order + ' · ' + (x.enabled ? 'Enabled' : 'Hidden') + '</span></div><div class="client-actions"><button class="secondary" type="button" data-edit-client="' + x.id + '">Edit</button><button class="link-btn danger" type="button" data-delete-client="' + x.id + '">Delete</button></div></div>';
+        return '<div class="client-item"><img src="' + esc(x.logo_path) + '" alt=""><div class="client-meta"><strong>' + esc(x.name) + '</strong><span>Order ' + x.display_order + ' · ' + (x.enabled ? 'Enabled' : 'Hidden') + '</span></div><div class="client-actions"><button class="secondary" type="button" data-edit-client="' + x.id + '">Edit</button><button class="link-btn" type="button" data-client-pdf="' + x.id + '">PDF</button><button class="link-btn danger" type="button" data-delete-client="' + x.id + '">Delete</button></div></div>';
       }).join('') : '<div class="empty">No clients.</div>';
 
       all('[data-edit-client]').forEach(function (btn) {
         btn.addEventListener('click', function () { editClient(btn.getAttribute('data-edit-client')); });
+      });
+      all('[data-client-pdf]').forEach(function (btn) {
+        btn.addEventListener('click', function () {
+          var id = btn.getAttribute('data-client-pdf');
+          var item = clients.filter(function (x) { return x.id === id; })[0];
+          if (!item) return;
+          downloadTextPdf('PRTC-Client-' + (item.name || 'Client').replace(/[^a-z0-9]+/gi,'-') + '.pdf','PRTC Group - Client',[{heading:item.name,lines:['Display Order: ' + item.display_order,'Website Status: ' + (item.enabled ? 'Enabled' : 'Hidden'),'Logo: ' + item.logo_path]}]);
+        });
       });
       all('[data-delete-client]').forEach(function (btn) {
         btn.addEventListener('click', function () { deleteClient(btn.getAttribute('data-delete-client')); });
@@ -948,6 +1085,11 @@
     downloadTextPdf('PRTC-Applications.pdf','PRTC Group - Applications (' + rows.length + ')', applicationSections(rows));
   });
 
+  $('#exportContactsPdf').addEventListener('click', function () {
+    var rows = getFilteredContacts(contactsCache || []);
+    downloadTextPdf('PRTC-Contact-Messages.pdf','PRTC Group - Contact Messages (' + rows.length + ')', contactSections(rows));
+  });
+
   $('#exportClientsPdf').addEventListener('click', function () {
     var rows = getFilteredClients(clientsCache || clients || []);
     var sections = rows.map(function (x,i) {
@@ -980,7 +1122,9 @@
     if (!currentDetailItem) return;
     var sections = currentDetailType === 'Enquiry'
       ? enquirySections([currentDetailItem])
-      : applicationSections([currentDetailItem]);
+      : currentDetailType === 'Contact Message'
+        ? contactSections([currentDetailItem])
+        : applicationSections([currentDetailItem]);
     downloadTextPdf('PRTC-' + currentDetailType + '-' + (currentDetailItem.name || 'Record').replace(/[^a-z0-9]+/gi,'-') + '.pdf','PRTC Group - ' + currentDetailType,sections);
   });
 
@@ -1004,6 +1148,7 @@
     Promise.all([
       rest('enquiries','select=*&order=created_at.desc',{method:'GET'}),
       rest('applications','select=*&order=created_at.desc',{method:'GET'}),
+      rest('contact_messages','select=*&order=created_at.desc',{method:'GET'}),
       api('/rest/v1/rpc/get_admin_dashboard',{
         method:'POST',
         headers:{'Content-Type':'application/json'},
@@ -1012,7 +1157,8 @@
     ]).then(function (sets) {
       var newEnquiries = sets[0] || [];
       var newApplications = sets[1] || [];
-      var newDashboard = sets[2];
+      var newContacts = sets[2] || [];
+      var newDashboard = sets[3];
       var view = activeAdminView();
 
       if (!sameData(enquiriesCache,newEnquiries)) {
@@ -1023,6 +1169,11 @@
       if (!sameData(applicationsCache,newApplications)) {
         applicationsCache = newApplications;
         if (view === 'applications') loadApplications();
+      }
+
+      if (!sameData(contactsCache,newContacts)) {
+        contactsCache = newContacts;
+        if (view === 'contacts') loadContacts();
       }
 
       if (newDashboard && !sameData(dashboardSnapshot,newDashboard)) {
