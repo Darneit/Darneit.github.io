@@ -55,6 +55,7 @@
     const suffix = el.dataset.suffix || '';
     const duration = target > 1500 ? 1050 : 950;
     if (reduce.matches) { el.textContent = target.toLocaleString('en-US') + suffix; return; }
+    el.textContent = '0' + suffix;
     const start = performance.now();
     const frame = now => {
       const p = Math.min(1,(now-start)/duration);
@@ -126,8 +127,6 @@
       if (e.key!=='ArrowLeft' && e.key!=='ArrowRight') return;
       e.preventDefault(); hold(); x += e.key==='ArrowLeft' ? 150 : -150; normalize(); render();
     });
-      viewport.addEventListener('mouseenter',()=>{interacting=true;stop();});
-      viewport.addEventListener('mouseleave',()=>{if(pointer===null){interacting=false;start();}});
     new ResizeObserver(measure).observe(group);
     document.addEventListener('visibilitychange',()=>{stop();start();});
     reduce.addEventListener?.('change',()=>{stop();render();start();});
@@ -156,4 +155,104 @@
   if (tradeIndex>=1 && tradeIndex<=trades.length) {
     document.querySelectorAll('input[name="trade"]').forEach(field => field.value=trades[tradeIndex-1]);
   }
+
+  // Optional analytics hooks. If Google Analytics is installed later, these events work automatically.
+  const track = (name, params={}) => { if (typeof window.gtag === 'function') window.gtag('event', name, params); };
+  document.addEventListener('click', e => { const a=e.target.closest('a'); if(!a)return; const href=a.getAttribute('href')||''; if(href.startsWith('tel:')) track('phone_click',{link_url:href}); else if(href.startsWith('mailto:')) track('email_click',{link_url:href}); else if(href.includes('/contact/')) track('contact_cta_click',{link_url:href}); });
+  document.querySelectorAll('[data-site-form]').forEach(form => form.addEventListener('submit',()=>{ const subject=form.querySelector('input[name="_subject"]')?.value||'website_form'; track('form_submit',{form_name:subject}); },{capture:true}));
+
 })();
+
+
+// Keep public URLs clean when a page is opened as /index.html.
+(() => {
+  if (window.location.pathname.endsWith("/index.html")) {
+    const cleanPath = window.location.pathname.slice(0, -"index.html".length);
+    window.history.replaceState(null, "", cleanPath + window.location.search + window.location.hash);
+  }
+})();
+
+// Keep public URLs clean when a page is opened with a physical HTML filename.
+if (window.location.pathname.endsWith("/index.html")) {
+  const cleanPath = window.location.pathname.slice(0, -"index.html".length);
+  window.history.replaceState(null, "", cleanPath + window.location.search + window.location.hash);
+} else if (window.location.pathname === "/404.html") {
+  window.history.replaceState(null, "", "/404/" + window.location.search + window.location.hash);
+}
+
+
+// Project gallery lightbox
+(() => {
+  const gallery = document.querySelector('.project-gallery');
+  const lightbox = document.getElementById('projectLightbox');
+  if (!gallery || !lightbox) return;
+  const shots = [...gallery.querySelectorAll('.project-shot')];
+  const viewer = lightbox.querySelector('img');
+  const closeBtn = lightbox.querySelector('.project-lightbox-close');
+  const prevBtn = lightbox.querySelector('.project-lightbox-prev');
+  const nextBtn = lightbox.querySelector('.project-lightbox-next');
+  let current = 0;
+  let touchX = null;
+
+  const show = (index) => {
+    current = (index + shots.length) % shots.length;
+    const img = shots[current].querySelector('img');
+    viewer.src = img.currentSrc || img.src;
+    viewer.alt = img.alt || 'Project image';
+  };
+  const open = (index) => {
+    show(index);
+    lightbox.classList.add('is-open');
+    lightbox.setAttribute('aria-hidden', 'false');
+    document.body.classList.add('lightbox-open');
+    closeBtn.focus();
+  };
+  const close = () => {
+    lightbox.classList.remove('is-open');
+    lightbox.setAttribute('aria-hidden', 'true');
+    document.body.classList.remove('lightbox-open');
+    shots[current]?.focus();
+  };
+
+  shots.forEach((shot, i) => {
+    shot.addEventListener('click', () => open(i));
+    shot.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); open(i); }
+    });
+  });
+  closeBtn.addEventListener('click', close);
+  prevBtn.addEventListener('click', () => show(current - 1));
+  nextBtn.addEventListener('click', () => show(current + 1));
+  lightbox.addEventListener('click', (e) => { if (e.target === lightbox) close(); });
+  lightbox.addEventListener('touchstart', e => { touchX = e.changedTouches[0].clientX; }, {passive:true});
+  lightbox.addEventListener('touchend', e => {
+    if (touchX == null) return;
+    const dx = e.changedTouches[0].clientX - touchX;
+    if (Math.abs(dx) > 45) show(current + (dx < 0 ? 1 : -1));
+    touchX = null;
+  }, {passive:true});
+  document.addEventListener('keydown', (e) => {
+    if (!lightbox.classList.contains('is-open')) return;
+    if (e.key === 'Escape') close();
+    if (e.key === 'ArrowLeft') show(current - 1);
+    if (e.key === 'ArrowRight') show(current + 1);
+  });
+})();
+
+
+// Back to top button
+document.addEventListener("DOMContentLoaded", () => {
+  const btn = document.querySelector(".back-to-top");
+  if (!btn) return;
+
+  const updateBackToTop = () => {
+    btn.classList.toggle("is-visible", window.scrollY > 500);
+  };
+
+  window.addEventListener("scroll", updateBackToTop, { passive: true });
+  updateBackToTop();
+
+  btn.addEventListener("click", () => {
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  });
+});
