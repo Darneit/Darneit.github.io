@@ -342,6 +342,7 @@
             project_location: data.get('project_location') || '',
             trade: data.get('trade') || '',
             workers: data.get('workers') || '',
+            duration: data.get('duration') || '',
             message: data.get('message') || '',
             website: data.get('_honey') || ''
           });
@@ -384,15 +385,6 @@
     window.history.replaceState(null, "", cleanPath + window.location.search + window.location.hash);
   }
 })();
-
-// Keep public URLs clean when a page is opened with a physical HTML filename.
-if (window.location.pathname.endsWith("/index.html")) {
-  const cleanPath = window.location.pathname.slice(0, -"index.html".length);
-  window.history.replaceState(null, "", cleanPath + window.location.search + window.location.hash);
-} else if (window.location.pathname === "/404.html") {
-  window.history.replaceState(null, "", "/404/" + window.location.search + window.location.hash);
-}
-
 
 // Project gallery lightbox
 (() => {
