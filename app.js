@@ -84,8 +84,9 @@
       clone.querySelectorAll('img').forEach(img => img.alt='');
       track.append(clone);
 
-    let x=0, last=0, width=0, raf=0, interacting=false, pointer=null, originX=0, originOffset=0, resumeTimer=0;
+    let x=0, last=0, width=0, raf=0, interacting=false, pointer=null, originX=0, originY=0, originOffset=0, dragging=false;
     const speed=31;
+    const dragThreshold=7;
     const normalize = () => {
       if (!width) return;
       while (x <= -width) x += width;
@@ -101,23 +102,60 @@
     };
     const start = () => { if (!raf && canRun()) raf=requestAnimationFrame(tick); };
     const stop = () => { if (raf) cancelAnimationFrame(raf); raf=0; last=0; };
-    const hold = (ms=1700) => { interacting=true; stop(); clearTimeout(resumeTimer); resumeTimer=setTimeout(()=>{interacting=false; start();},ms); };
-    const measure = () => { width=group.getBoundingClientRect().width; normalize(); render(); start(); };
-      viewport.addEventListener('pointerdown', e => {
-      if (e.button !== undefined && e.pointerType==='mouse' && e.button!==0) return;
-      hold(999999); pointer=e.pointerId; originX=e.clientX; originOffset=x;
-      viewport.setPointerCapture?.(pointer);
-    });
-      viewport.addEventListener('pointermove', e => {
-      if (pointer !== e.pointerId) return;
-      x = originOffset + (e.clientX-originX); normalize(); render();
-    });
-    const release = e => {
-      if (pointer !== null && (!e || e.pointerId===pointer)) { pointer=null; hold(1700); }
+    const hold = (ms=1700) => {
+      interacting=true;
+      stop();
+      setTimeout(()=>{ interacting=false; start(); }, ms);
     };
-      viewport.addEventListener('pointerup',release);
-      viewport.addEventListener('pointercancel',release);
-      viewport.addEventListener('lostpointercapture',release);
+    const measure = () => { width=group.getBoundingClientRect().width; normalize(); render(); start(); };
+
+    viewport.addEventListener('pointerdown', e => {
+      if (e.button !== undefined && e.pointerType==='mouse' && e.button!==0) return;
+      pointer=e.pointerId;
+      originX=e.clientX;
+      originY=e.clientY;
+      originOffset=x;
+      dragging=false;
+      /* Do NOT pause on pointerdown. A normal click must never stop the marquee. */
+    });
+
+    viewport.addEventListener('pointermove', e => {
+      if (pointer !== e.pointerId) return;
+
+      const dx=e.clientX-originX;
+      const dy=e.clientY-originY;
+
+      if (!dragging && Math.hypot(dx,dy) >= dragThreshold) {
+        dragging=true;
+        interacting=true;
+        stop();
+        viewport.setPointerCapture?.(pointer);
+      }
+
+      if (!dragging) return;
+
+      x = originOffset + dx;
+      normalize();
+      render();
+    });
+
+    const release = e => {
+      if (pointer === null || (e && e.pointerId !== pointer)) return;
+
+      if (dragging) {
+        try { viewport.releasePointerCapture?.(pointer); } catch {}
+      }
+
+      pointer=null;
+      dragging=false;
+      interacting=false;
+      last=0;
+      start(); // resume immediately — no timeout
+    };
+
+    viewport.addEventListener('pointerup',release);
+    viewport.addEventListener('pointercancel',release);
+    viewport.addEventListener('lostpointercapture',release);
       viewport.addEventListener('wheel', e => {
       const delta = Math.abs(e.deltaX) > Math.abs(e.deltaY) ? e.deltaX : (e.shiftKey ? e.deltaY : 0);
       if (!delta) return;
@@ -256,3 +294,5 @@ document.addEventListener("DOMContentLoaded", () => {
     window.scrollTo({ top: 0, behavior: "smooth" });
   });
 });
+
+

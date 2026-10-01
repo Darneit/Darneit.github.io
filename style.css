@@ -2764,3 +2764,13 @@ footer .footer-locations{
   margin-top:10px !important;
   margin-bottom:12px !important;
 }
+
+
+
+/* Pause only once an actual drag has started */
+.client-marquee.is-dragging *,
+.clients-marquee.is-dragging *,
+.client-track-wrap.is-dragging *,
+.logo-marquee.is-dragging *{
+  animation-play-state:paused !important;
+}
