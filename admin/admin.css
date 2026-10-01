@@ -75,3 +75,7 @@ dialog#detailDialog{
   .detail-head{padding-right:28px;flex-direction:column;gap:10px}
   .detail-row{grid-template-columns:1fr;gap:4px;padding:12px 0}
 }
+
+.row-actions{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.row-actions .danger{color:var(--danger)}
+.row-actions button:disabled{opacity:.5;cursor:wait}
