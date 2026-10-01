@@ -716,7 +716,7 @@
     var status = $('#enquiryStatusFilter') ? $('#enquiryStatusFilter').value : '';
     var sort = $('#enquirySort') ? $('#enquirySort').value : 'newest';
     var rows = (data || []).filter(function (x) {
-      var hay = [x.name,x.company,x.email,x.phone,x.trade,x.project_location].map(norm).join(' ');
+      var hay = [x.name,x.company,x.email,x.phone,x.trade,x.project_location,x.duration,x.message].map(norm).join(' ');
       return (!q || hay.indexOf(q) >= 0) && (!status || x.status === status) && dateMatches(x.created_at,'enquiry');
     }).slice();
     rows.sort(function (a,b) {
