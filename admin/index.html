@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<meta name="robots" content="noindex,nofollow"/>
+<title>PRTC Admin</title>
+<link rel="icon" href="/assets/favicon.ico" sizes="any"/>
+<link rel="stylesheet" href="/admin/admin.css"/>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script defer src="/admin/admin.js"></script>
+</head>
+<body>
+<div class="admin-login" id="loginView">
+  <form class="login-card" id="loginForm">
+    <a href="/" class="admin-brand"><img src="/assets/prtc-header-light.png" alt="PRTC Group"/></a>
+    <p class="kicker">Secure administration</p>
+    <h1>PRTC Admin</h1>
+    <p class="muted">Sign in with an approved administrator account.</p>
+    <label>Email<input id="loginEmail" type="email" autocomplete="username" required/></label>
+    <label>Password<input id="loginPassword" type="password" autocomplete="current-password" required/></label>
+    <button type="submit" class="primary">Sign in</button>
+    <p class="status" id="loginStatus" role="status"></p>
+    <a class="back-link" href="/">← Back to website</a>
+  </form>
+</div>
+
+<div class="admin-shell" id="adminView" hidden>
+  <aside class="sidebar">
+    <a href="/" class="admin-brand sidebar-brand"><img src="/assets/prtc-header-dark.png" alt="PRTC Group"/></a>
+    <nav>
+      <button class="nav-btn is-active" data-view="dashboard">Dashboard</button>
+      <button class="nav-btn" data-view="enquiries">Enquiries</button>
+      <button class="nav-btn" data-view="applications">Applications</button>
+      <button class="nav-btn" data-view="clients">Clients</button>
+    </nav>
+    <div class="sidebar-bottom">
+      <span id="adminEmail"></span>
+      <button id="logoutBtn" class="text-btn">Log out</button>
+    </div>
+  </aside>
+
+  <main class="admin-main">
+    <header class="admin-topbar">
+      <div>
+        <p class="kicker">PRTC Group</p>
+        <h1 id="viewTitle">Dashboard</h1>
+      </div>
+      <button class="mobile-nav-btn" id="mobileNavBtn" aria-label="Toggle admin navigation">Menu</button>
+    </header>
+
+    <section class="admin-view is-active" data-panel="dashboard">
+      <div class="stats-grid" id="dashboardStats"></div>
+      <div class="panel">
+        <div class="panel-head"><div><p class="kicker">Recent activity</p><h2>Latest submissions</h2></div><button class="secondary" data-refresh="dashboard">Refresh</button></div>
+        <div id="recentActivity" class="activity-list"></div>
+      </div>
+    </section>
+
+    <section class="admin-view" data-panel="enquiries">
+      <div class="panel">
+        <div class="panel-head"><div><p class="kicker">Manpower</p><h2>Enquiries</h2></div><button class="secondary" data-refresh="enquiries">Refresh</button></div>
+        <div class="table-wrap"><table><thead><tr><th>Date</th><th>Name</th><th>Company</th><th>Contact</th><th>Requirement</th><th>Status</th><th></th></tr></thead><tbody id="enquiryRows"></tbody></table></div>
+      </div>
+    </section>
+
+    <section class="admin-view" data-panel="applications">
+      <div class="panel">
+        <div class="panel-head"><div><p class="kicker">Recruitment</p><h2>Applications</h2></div><button class="secondary" data-refresh="applications">Refresh</button></div>
+        <div class="table-wrap"><table><thead><tr><th>Date</th><th>Applicant</th><th>Trade</th><th>Contact</th><th>Status</th><th>CV</th><th></th></tr></thead><tbody id="applicationRows"></tbody></table></div>
+      </div>
+    </section>
+
+    <section class="admin-view" data-panel="clients">
+      <div class="client-layout">
+        <form class="panel client-form" id="clientForm">
+          <div class="panel-head"><div><p class="kicker">Website</p><h2 id="clientFormTitle">Add client</h2></div></div>
+          <input type="hidden" id="clientId"/>
+          <label>Company name<input id="clientName" required maxlength="160"/></label>
+          <label>Display order<input id="clientOrder" type="number" min="0" value="0" required/></label>
+          <label class="check"><input id="clientEnabled" type="checkbox" checked/> Enabled on website</label>
+          <label>Logo<input id="clientLogo" type="file" accept="image/png,image/jpeg,image/webp,image/svg+xml"/></label>
+          <p class="muted small">A logo is required for new clients. Existing clients can keep their current logo.</p>
+          <div class="button-row"><button class="primary" type="submit">Save client</button><button class="secondary" id="clientCancel" type="button" hidden>Cancel edit</button></div>
+          <p class="status" id="clientStatus" role="status"></p>
+        </form>
+        <div class="panel">
+          <div class="panel-head"><div><p class="kicker">Display order</p><h2>Clients</h2></div><button class="secondary" data-refresh="clients">Refresh</button></div>
+          <div id="clientRows" class="client-list"></div>
+        </div>
+      </div>
+    </section>
+  </main>
+</div>
+
+<dialog id="detailDialog">
+  <button class="dialog-close" id="dialogClose" aria-label="Close">×</button>
+  <div id="dialogContent"></div>
+</dialog>
+</body>
+</html>
