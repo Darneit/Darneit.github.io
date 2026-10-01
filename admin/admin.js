@@ -1,8 +1,8 @@
 (() => {
 'use strict';
 
-const SUPABASE_URL = 'https://sqeyjhedqufykqduvtcb.supabase.co';
-const API_KEY = 'sb_publishable_goNXOTguYIcivBwulGSf_g_KhY2iRYK';
+const SUPABASE_URL = 'https://hjbzkhcoltoxzvabprdj.supabase.co';
+const API_KEY = 'sb_publishable_4mtyuQoyJf9zlOoWyKrtpw_aWUlDEc2';
 const $ = s => document.querySelector(s);
 const esc = v => String(v ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const fmt = d => d ? new Intl.DateTimeFormat('en-AE',{dateStyle:'medium',timeStyle:'short'}).format(new Date(d)) : '—';
