@@ -499,7 +499,7 @@
   function prefetchAdminData() {
     Promise.all([
       rest('enquiries','select=*&deleted_at=is.null&order=created_at.desc',{method:'GET'}).then(function (data) { enquiriesCache = data || []; }),
-      rest('applications','select=*&deleted_at=is.null&order=created_at.desc',{method:'GET'}).then(function (data) { applicationsCache = data || []; }),
+      rest('applications','select=*&deleted_at=is.null&cv_uploaded=eq.true&order=created_at.desc',{method:'GET'}).then(function (data) { applicationsCache = data || []; }),
       rest('contact_messages','select=*&deleted_at=is.null&order=created_at.desc',{method:'GET'}).then(function (data) { contactsCache = data || []; }),
       rest('clients','select=*&order=display_order.asc,name.asc',{method:'GET'}).then(function (data) {
         clientsCache = data || [];
@@ -567,7 +567,7 @@
 
   function loadApplications() {
     if (!applicationsCache) $('#applicationRows').innerHTML = '<tr><td colspan="7">Loading…</td></tr>';
-    var source = applicationsCache ? Promise.resolve(applicationsCache) : rest('applications','select=*&deleted_at=is.null&order=created_at.desc',{method:'GET'});
+    var source = applicationsCache ? Promise.resolve(applicationsCache) : rest('applications','select=*&deleted_at=is.null&cv_uploaded=eq.true&order=created_at.desc',{method:'GET'});
     source.then(function (data) {
       data = data || [];
       applicationsCache = data;
@@ -1004,7 +1004,7 @@
     $('#trashRows').innerHTML = '<tr><td colspan="5">Loading…</td></tr>';
     Promise.all([
       rest('enquiries','select=*&deleted_at=not.is.null&order=deleted_at.desc',{method:'GET'}),
-      rest('applications','select=*&deleted_at=not.is.null&order=deleted_at.desc',{method:'GET'}),
+      rest('applications','select=*&deleted_at=not.is.null&cv_uploaded=eq.true&order=deleted_at.desc',{method:'GET'}),
       rest('contact_messages','select=*&deleted_at=not.is.null&order=deleted_at.desc',{method:'GET'})
     ]).then(function (sets) {
       var rows = [];
