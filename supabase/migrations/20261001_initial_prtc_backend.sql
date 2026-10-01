@@ -1,0 +1,6 @@
+-- PRTC backend schema (deployed to project sqeyjhedqufykqduvtcb)
+-- Keep this file as the reproducible schema source. Apply through Supabase migrations.
+-- Tables: admin_users, enquiries, applications, clients, submission_attempts
+-- Buckets: cv-private (private), client-logos (public)
+-- RLS: public can only read enabled clients; approved admins manage backend records.
+-- See BACKEND-README.md for operational details.
