@@ -225,8 +225,8 @@
       try {
         const isApplication = Boolean(file);
         const endpoint = isApplication
-          ? 'https://sqeyjhedqufykqduvtcb.supabase.co/functions/v1/submit-application'
-          : 'https://sqeyjhedqufykqduvtcb.supabase.co/functions/v1/submit-enquiry';
+          ? 'https://hjbzkhcoltoxzvabprdj.supabase.co/functions/v1/submit-application'
+          : 'https://hjbzkhcoltoxzvabprdj.supabase.co/functions/v1/submit-enquiry';
 
         let body;
         let headers = {};
